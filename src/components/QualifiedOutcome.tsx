@@ -4,15 +4,18 @@ import type { Answers } from "@/lib/flow";
 import {
   getCalendlyUrl,
   getFlowConfig,
+  getGarmentSelectionsAsProductTypes,
   getIndicativePackagePricing,
   getPricingAnchor,
   getProductionTimeline,
+  getProjectConfiguration,
   getQuoteProcessSteps,
   getWizardPurposeToProjectPurpose,
 } from "@/lib/flow";
+import type { ConfiguredProduct } from "@/lib/pricing";
 import { QuoteForm } from "./QuoteForm";
 import { ProjectConfigurator, type ProjectConfiguratorData } from "./ProjectConfigurator";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -27,10 +30,32 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
   const wizardToProject = getWizardPurposeToProjectPurpose();
   const initialPurpose = answers.purpose ? (wizardToProject[answers.purpose] ?? answers.purpose) : "";
 
+  const initialProducts = useMemo((): ConfiguredProduct[] => {
+    const productTypes = getGarmentSelectionsAsProductTypes(answers.garments);
+    if (productTypes.length === 0) return [];
+    const config = getProjectConfiguration();
+    if (!config) return [];
+    const modelsByProduct = config.garmentModelsByProduct ?? {};
+    const colourOpts = config.garmentColourOptions ?? [];
+    const defaultColour = colourOpts[0]?.value ?? "white";
+    return productTypes.map((productType) => {
+      const models = modelsByProduct[productType] ?? [];
+      const garmentModel = models[0]?.value ?? productType;
+      return {
+        productType,
+        garmentModel,
+        garmentColour: defaultColour,
+        quantity: 100,
+        placements: [],
+        finishes: [],
+      };
+    });
+  }, [answers.garments]);
+
   const [projectData, setProjectData] = useState<ProjectConfiguratorData>({
     purpose: initialPurpose,
     artworkStatus: answers.artwork === "yes" || answers.artwork === "partially" || answers.artwork === "no" ? answers.artwork : undefined,
-    products: [],
+    products: initialProducts,
     dueDate: "",
     rushFlag: false,
     summary: null,

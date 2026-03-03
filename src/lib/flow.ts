@@ -178,3 +178,33 @@ export function getWizardPurposeToProjectPurpose(): Record<string, string> {
   const pc = (flowConfig as Record<string, unknown>).projectConfiguration as { wizardPurposeToProjectPurpose?: Record<string, string> } | undefined;
   return pc?.wizardPurposeToProjectPurpose ?? {};
 }
+
+/** Map wizard garment question value → configurator product type. "unsure" is omitted from prefill. */
+const WIZARD_GARMENT_TO_PRODUCT_TYPE: Record<string, string> = {
+  tees: "t_shirts",
+  sweats: "hoodies",
+  hats: "hats",
+  corporate: "corporate_wear",
+  work_wear: "work_wear",
+  totes: "tote_bags",
+  other: "other_merch",
+};
+
+/**
+ * Parses answers.garments (comma-separated) and returns configurator product types.
+ * Skips "unsure"; dedupes so each product type appears once.
+ */
+export function getGarmentSelectionsAsProductTypes(garmentsStr: string | undefined): string[] {
+  if (!garmentsStr || typeof garmentsStr !== "string") return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of garmentsStr.split(",").map((s) => s.trim()).filter(Boolean)) {
+    if (v === "unsure") continue;
+    const productType = WIZARD_GARMENT_TO_PRODUCT_TYPE[v];
+    if (productType && !seen.has(productType)) {
+      seen.add(productType);
+      out.push(productType);
+    }
+  }
+  return out;
+}

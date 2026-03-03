@@ -34,7 +34,7 @@
     {
       "id": "garments",
       "question": "What kind of garments are you looking for?",
-      "type": "single",
+      "type": "multi",
       "options": [
         { "value": "tees", "label": "Tees" },
         { "value": "sweats", "label": "Sweats / Hoodies" },

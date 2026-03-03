@@ -8,6 +8,11 @@ type Question = {
   options: Option[];
 };
 
+function selectedSet(value: string): Set<string> {
+  if (!value || typeof value !== "string") return new Set();
+  return new Set(value.split(",").map((s) => s.trim()).filter(Boolean));
+}
+
 export function QuestionStep({
   question,
   value,
@@ -21,7 +26,16 @@ export function QuestionStep({
   onNext: (lastAnswerValue?: string) => void;
   onBack?: () => void;
 }) {
-  const canNext = value !== undefined && value !== "";
+  const isMulti = question.type === "multi";
+  const selected = isMulti ? selectedSet(value) : new Set(value ? [value] : []);
+  const canNext = isMulti ? selected.size >= 1 : value !== undefined && value !== "";
+
+  const handleMultiToggle = (optValue: string) => {
+    const next = new Set(selected);
+    if (next.has(optValue)) next.delete(optValue);
+    else next.add(optValue);
+    onAnswer(Array.from(next).join(","));
+  };
 
   return (
     <div>
@@ -29,27 +43,50 @@ export function QuestionStep({
         {question.question}
       </h2>
 
-      <div className="space-y-3">
-        {question.options.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => {
-              onAnswer(opt.value);
-              if (question.type === "single") {
-                setTimeout(() => onNext(opt.value), 200);
-              }
-            }}
-            className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 transition-all font-body text-base focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 ${
-              value === opt.value
-                ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
-                : "border-off-white bg-white hover:border-burnt-orange/50 hover:bg-burnt-orange/5 text-off-black"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+      {isMulti ? (
+        <div className="space-y-3">
+          {question.options.map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex items-center gap-3 w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 transition-all font-body text-base cursor-pointer focus-within:ring-2 focus-within:ring-burnt-orange focus-within:ring-offset-2 ${
+                selected.has(opt.value)
+                  ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
+                  : "border-off-white bg-white hover:border-burnt-orange/50 hover:bg-burnt-orange/5 text-off-black"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(opt.value)}
+                onChange={() => handleMultiToggle(opt.value)}
+                className="rounded border-off-black/30 focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
+              />
+              <span>{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {question.options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onAnswer(opt.value);
+                if (question.type === "single") {
+                  setTimeout(() => onNext(opt.value), 200);
+                }
+              }}
+              className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 transition-all font-body text-base focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 ${
+                value === opt.value
+                  ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
+                  : "border-off-white bg-white hover:border-burnt-orange/50 hover:bg-burnt-orange/5 text-off-black"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-10 flex gap-4">
         {onBack && (
@@ -61,7 +98,7 @@ export function QuestionStep({
             Back
           </button>
         )}
-        {question.type === "quantity" && (
+        {(question.type === "quantity" || question.type === "multi") && (
           <button
             type="button"
             onClick={() => onNext()}
