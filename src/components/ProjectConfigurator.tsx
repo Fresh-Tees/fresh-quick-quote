@@ -198,7 +198,7 @@ export function ProjectConfigurator({
         {!purposeEditMode ? (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-body text-sm text-off-black/90">
-              {purposeLabel ?? config.purposeOptions.find((o) => o.value === purpose)?.label ?? purpose || "—"}
+            {(purposeLabel ?? config.purposeOptions.find((o) => o.value === purpose)?.label ?? purpose) || "—"}
             </span>
             <button
               type="button"
