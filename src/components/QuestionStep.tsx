@@ -40,10 +40,10 @@ export function QuestionStep({
                 setTimeout(() => onNext(opt.value), 200);
               }
             }}
-            className={`w-full text-left px-5 py-4 rounded-lg border-2 transition-all font-body text-base ${
+            className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 transition-all font-body text-base focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 ${
               value === opt.value
                 ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
-                : "border-off-white bg-white hover:border-off-black/20 text-off-black"
+                : "border-off-white bg-white hover:border-burnt-orange/50 hover:bg-burnt-orange/5 text-off-black"
             }`}
           >
             {opt.label}
@@ -56,7 +56,7 @@ export function QuestionStep({
           <button
             type="button"
             onClick={onBack}
-            className="px-5 py-3 font-body text-off-black/80 hover:text-off-black"
+            className="min-h-[44px] px-5 py-3 font-body text-off-black/80 hover:text-off-black focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 rounded-lg"
           >
             Back
           </button>
@@ -66,7 +66,7 @@ export function QuestionStep({
             type="button"
             onClick={() => onNext()}
             disabled={!canNext}
-            className="px-6 py-3 bg-off-black text-white font-body font-medium rounded-lg hover:bg-off-black/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="min-h-[44px] px-6 py-3 bg-off-black text-white font-body font-medium rounded-lg hover:bg-off-black/90 focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>

@@ -75,16 +75,16 @@ export function Wizard() {
 
   return (
     <div className="max-w-xl mx-auto px-6 py-12">
-      <div className="mb-10">
-        <div className="h-1 bg-off-white rounded-full overflow-hidden">
+      <div className="mb-10 flex flex-col gap-2">
+        <p className="text-sm font-body font-medium text-off-black/80">
+          Step {step + 1} of {questions.length}
+        </p>
+        <div className="h-1.5 bg-off-white rounded-full overflow-hidden">
           <div
             className="h-full bg-burnt-orange transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="mt-2 text-sm text-off-black/70 font-body">
-          Step {step + 1} of {questions.length}
-        </p>
       </div>
 
       <QuestionStep

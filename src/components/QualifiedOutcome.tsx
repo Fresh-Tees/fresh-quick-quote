@@ -73,16 +73,18 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       : null;
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-12">
-      <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-4">
-        Let's get you a firm quote
-      </h1>
-      <p className="font-body text-off-black/80 mb-6">
-        Based on what you've told us, you're in the right place for managed production (50+ units). Book a quick call and we'll give you a firm quote, or leave your details and we'll get back to you.
-      </p>
+    <div className="max-w-xl mx-auto px-6 py-12 space-y-8">
+      <section>
+        <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-2">
+          You're in the right place for 50+ units
+        </h1>
+        <p className="font-body text-off-black/80 text-base">
+          Let's get you a firm quote. Book a quick call or leave your details below.
+        </p>
+      </section>
 
       {pricingAnchor && (
-        <div className="mb-6 p-4 rounded-lg border border-off-black/20 bg-off-white/30">
+        <div className="p-4 rounded-lg border border-off-black/20 bg-off-white/30">
           <p className="font-body text-xs text-off-black/70 mb-1">
             Garment: {pricingAnchor.garmentLabel} · Print: {pricingAnchor.printLabel} · Quantity: {pricingAnchor.quantity} units
           </p>
@@ -102,7 +104,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       />
 
       {packagePricing && (
-        <div className="mb-8">
+        <div>
           <p className="font-display font-bold text-off-black mb-2">Indicative project breakdowns</p>
           <p className="font-body text-sm text-off-black/80 mb-1">{packagePricing.displayContext}</p>
           <p className="font-body text-sm text-off-black/80 mb-1">{packagePricing.disclaimer}</p>
@@ -141,7 +143,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       )}
 
       {timeline && (
-        <div className="mb-6 font-body text-sm text-off-black/80">
+        <div className="font-body text-sm text-off-black/80">
           <p className="font-display font-bold text-off-black mb-1">Production timeline</p>
           <p>{timeline.standard}</p>
           {timeline.rushOptions.length > 0 && (
@@ -156,7 +158,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       )}
 
       {quoteSteps.length > 0 && (
-        <div className="mb-8 font-body text-sm text-off-black/80">
+        <div className="font-body text-sm text-off-black/80">
           <p className="font-display font-bold text-off-black mb-2">What happens next</p>
           <ol className="list-decimal list-inside space-y-1">
             {quoteSteps.map((step, i) => (
@@ -166,19 +168,19 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
         </div>
       )}
 
-      <div className="space-y-4 mb-10">
+      <div className="space-y-4">
         <a
           href={calendlyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full text-center px-8 py-4 bg-burnt-orange text-white font-body font-medium rounded-lg hover:bg-burnt-orange/90 transition-colors"
+          className="flex items-center justify-center min-h-[44px] w-full px-8 py-4 bg-burnt-orange text-white font-body font-medium rounded-lg hover:bg-burnt-orange/90 transition-colors focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
         >
           Book a call
         </a>
         <button
           type="button"
           onClick={() => setShowQuoteForm(true)}
-          className="block w-full text-center px-8 py-4 border-2 border-off-black text-off-black font-body font-medium rounded-lg hover:bg-off-black/5"
+          className="flex items-center justify-center min-h-[44px] w-full px-8 py-4 border-2 border-off-black text-off-black font-body font-medium rounded-lg hover:bg-off-black/5 focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
         >
           Request a quote instead
         </button>

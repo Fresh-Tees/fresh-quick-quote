@@ -19,16 +19,18 @@ export function EducationOutcome({ answers }: { answers: Answers }) {
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-12">
-      <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-6">
-        {content?.title ?? "Almost there"}
-      </h1>
-      <p className="font-body text-off-black/80 whitespace-pre-line mb-8">
-        {content?.body ?? "To give you an accurate quote and make the most of a call, it helps to have print-ready artwork, an idea of placements and sizes, and a rough budget. Check out our guides, then come back when you're ready—or leave your details and we'll send a checklist and follow up."}
-      </p>
+    <div className="max-w-xl mx-auto px-6 py-12 space-y-8">
+      <section>
+        <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-2">
+          {content?.title ?? "Almost there"}
+        </h1>
+        <p className="font-body text-off-black/80 text-base whitespace-pre-line">
+          {content?.body ?? "To give you an accurate quote and make the most of a call, it helps to have print-ready artwork, an idea of placements and sizes, and a rough budget. Check out our guides, then come back when you're ready—or leave your details and we'll send a checklist and follow up."}
+        </p>
+      </section>
 
       {topics && gaps.length > 0 && (
-        <div className="space-y-8 mb-10">
+        <div className="space-y-8">
           {gaps.map((gapId) => {
             const topic = topics[gapId];
             if (!topic) return null;
@@ -47,7 +49,7 @@ export function EducationOutcome({ answers }: { answers: Answers }) {
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-block px-4 py-2 bg-burnt-orange text-white font-body text-sm font-medium rounded-lg hover:bg-burnt-orange/90 transition-colors"
+                      className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-burnt-orange text-white font-body text-sm font-medium rounded-lg hover:bg-burnt-orange/90 transition-colors focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
                     >
                       {link.label}
                     </a>
@@ -64,7 +66,7 @@ export function EducationOutcome({ answers }: { answers: Answers }) {
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="w-full md:w-auto px-8 py-4 bg-off-black text-white font-body font-medium rounded-lg hover:bg-off-black/90"
+            className="flex items-center justify-center min-h-[44px] w-full md:w-auto px-8 py-4 bg-off-black text-white font-body font-medium rounded-lg hover:bg-off-black/90 focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
           >
             Leave my details for a checklist
           </button>
