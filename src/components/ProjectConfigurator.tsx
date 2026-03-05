@@ -66,6 +66,7 @@ export function ProjectConfigurator({
   const [contactFieldErrors, setContactFieldErrors] = useState<{ fullName?: string; email?: string; phone?: string }>({});
   const [purposeEditMode, setPurposeEditMode] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
   const [addingProduct, setAddingProduct] = useState<ConfiguredProduct>({
     productType: "t_shirts",
     garmentModel: "staple",
@@ -125,10 +126,14 @@ export function ProjectConfigurator({
       garmentModel: models.length ? addingProduct.garmentModel : addingProduct.productType,
       placements,
     };
-    const nextProducts = [...products, next];
+    const nextProducts =
+      editingProductIndex !== null
+        ? products.map((p, i) => (i === editingProductIndex ? next : p))
+        : [...products, next];
     setProducts(nextProducts);
     setSummary(null);
     setShowAddForm(false);
+    setEditingProductIndex(null);
     setAddingProduct({
       productType: "t_shirts",
       garmentModel: "staple",
@@ -138,6 +143,7 @@ export function ProjectConfigurator({
       finishes: [],
     });
     setPlacementChecks({ front: false, back: false, sleeves: false });
+    setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
     onChange({ purpose, artworkStatus: value.artworkStatus, products: nextProducts, dueDate, rushFlag, summary: null, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
   };
 
@@ -145,7 +151,49 @@ export function ProjectConfigurator({
     const next = products.filter((_, i) => i !== index);
     setProducts(next);
     setSummary(null);
+    if (editingProductIndex === index) {
+      setEditingProductIndex(null);
+      setShowAddForm(false);
+    } else if (editingProductIndex != null && editingProductIndex > index) {
+      setEditingProductIndex(editingProductIndex - 1);
+    }
     onChange({ purpose, artworkStatus: value.artworkStatus, products: next, dueDate, rushFlag, summary: null, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
+  };
+
+  const startEditProduct = (index: number) => {
+    const p = products[index];
+    setEditingProductIndex(index);
+    setAddingProduct({ ...p });
+    const checks: Record<string, boolean> = { front: false, back: false, sleeves: false };
+    p.placements.forEach((pl) => {
+      if (pl.location in checks) checks[pl.location] = true;
+    });
+    setPlacementChecks(checks);
+    const details: Record<string, { printType: PlacementPrintType; colourCount: number }> = {
+      front: { printType: "screen", colourCount: 1 },
+      back: { printType: "screen", colourCount: 1 },
+      sleeves: { printType: "screen", colourCount: 1 },
+    };
+    p.placements.forEach((pl) => {
+      details[pl.location] = { printType: pl.printType, colourCount: pl.colourCount ?? 1 };
+    });
+    setPlacementDetails(details);
+    setShowAddForm(true);
+  };
+
+  const cancelAddOrEdit = () => {
+    setShowAddForm(false);
+    setEditingProductIndex(null);
+    setAddingProduct({
+      productType: "t_shirts",
+      garmentModel: "staple",
+      garmentColour: "white",
+      quantity: 100,
+      placements: [],
+      finishes: [],
+    });
+    setPlacementChecks({ front: false, back: false, sleeves: false });
+    setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
   };
 
   const toggleFinish = (f: string) => {
@@ -246,9 +294,14 @@ export function ProjectConfigurator({
                 <span>
                   {productTypeLabel(p.productType)} × {p.quantity} · {p.placements.length} placement(s) · {p.finishes.length} finish(es)
                 </span>
-                <button type="button" onClick={() => removeProduct(i)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-burnt-orange hover:underline text-xs focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 rounded px-2 -mr-2">
-                  Remove
-                </button>
+                <span className="flex items-center gap-1">
+                  <button type="button" onClick={() => startEditProduct(i)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-off-black/80 hover:text-off-black hover:underline text-xs focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 rounded px-2">
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => removeProduct(i)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-burnt-orange hover:underline text-xs focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 rounded px-2 -mr-2">
+                    Remove
+                  </button>
+                </span>
               </li>
             ))}
           </ul>
@@ -256,7 +309,13 @@ export function ProjectConfigurator({
         {!showAddForm ? (
           <button
             type="button"
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              setEditingProductIndex(null);
+              setAddingProduct({ productType: "t_shirts", garmentModel: "staple", garmentColour: "white", quantity: 100, placements: [], finishes: [] });
+              setPlacementChecks({ front: false, back: false, sleeves: false });
+              setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
+              setShowAddForm(true);
+            }}
             className="min-h-[44px] px-4 py-2 border border-off-black/30 rounded font-body text-sm text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
           >
             Add product
@@ -412,9 +471,9 @@ export function ProjectConfigurator({
                 onClick={addProduct}
                 className="min-h-[44px] px-4 py-2 bg-off-black text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2"
               >
-                Add to project
+                {editingProductIndex !== null ? "Save changes" : "Add to project"}
               </button>
-              <button type="button" onClick={() => setShowAddForm(false)} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 rounded">
+              <button type="button" onClick={cancelAddOrEdit} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 rounded">
                 Cancel
               </button>
             </div>

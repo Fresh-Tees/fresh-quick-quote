@@ -3,7 +3,7 @@ import flowConfig from "@/config/flow.json";
 export type FlowConfig = typeof flowConfig;
 export type Answers = Record<string, string>;
 
-const smallQuantityValues = ["1-24"];
+const smallQuantityValues = ["less-than-25"];
 
 export function isSmallOrder(answers: Answers): boolean {
   const q = answers.quantity;
@@ -58,17 +58,36 @@ export function getFlowConfig(): FlowConfig {
   return flowConfig;
 }
 
-/** Indicative price per unit for bulk (50+), baseline 1 colour white garments. Returns null if quantity not in a quoted range. */
+/** Returns the max quantity for the wizard quantity selection (used for indicative pricing at top of range). */
+export function getQuantityRangeMax(quantityValue: string | undefined): number | null {
+  if (!quantityValue) return null;
+  const rangeMap = (flowConfig as Record<string, unknown>).quantityRangeMap as Record<string, { min: number; max: number | null }> | undefined;
+  if (!rangeMap) return null;
+  const range = rangeMap[quantityValue];
+  if (!range || range.max == null) return null;
+  return range.max;
+}
+
+/** Returns the min quantity for the wizard quantity selection (e.g. for display "X – Y units"). */
+export function getQuantityRangeMin(quantityValue: string | undefined): number | null {
+  if (!quantityValue) return null;
+  const rangeMap = (flowConfig as Record<string, unknown>).quantityRangeMap as Record<string, { min: number; max: number | null }> | undefined;
+  if (!rangeMap) return null;
+  const range = rangeMap[quantityValue];
+  if (!range) return null;
+  return range.min;
+}
+
+/** Indicative price per unit at the *top* of the selected quantity range. Returns null if small order or no tier. */
 export function getIndicativePricePerUnit(answers: Answers): number | null {
   const q = answers.quantity;
-  if (!q || q === "unsure") return null;
-  const rangeMap = (flowConfig as Record<string, unknown>).quantityRangeMap as Record<string, { min: number; max: number }> | undefined;
+  if (!q) return null;
+  const maxQty = getQuantityRangeMax(q);
+  if (maxQty == null) return null;
   const tiers = (flowConfig as Record<string, unknown>).screenPrintPricing as { tiers: { min: number; max: number | null; pricePerUnit: number }[] } | undefined;
-  if (!rangeMap || !tiers?.tiers) return null;
-  const range = rangeMap[q];
-  if (!range) return null;
+  if (!tiers?.tiers) return null;
   const tier = tiers.tiers.find(
-    (t) => t.min <= range.min && (t.max === null || t.max >= range.max)
+    (t) => t.min <= maxQty && (t.max === null || t.max >= maxQty)
   );
   return tier ? tier.pricePerUnit : null;
 }

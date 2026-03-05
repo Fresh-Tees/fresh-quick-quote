@@ -6,9 +6,12 @@ import {
   getFlowConfig,
   getGarmentSelectionsAsProductTypes,
   getIndicativePackagePricing,
+  getIndicativePricePerUnit,
   getPricingAnchor,
   getProductionTimeline,
   getProjectConfiguration,
+  getQuantityRangeMax,
+  getQuantityRangeMin,
   getQuoteProcessSteps,
   getWizardPurposeToProjectPurpose,
 } from "@/lib/flow";
@@ -44,6 +47,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
     const modelsByProduct = config.garmentModelsByProduct ?? {};
     const colourOpts = config.garmentColourOptions ?? [];
     const defaultColour = colourOpts[0]?.value ?? "white";
+    const defaultQty = getQuantityRangeMax(answers.quantity) ?? 100;
     return productTypes.map((productType) => {
       const models = modelsByProduct[productType] ?? [];
       const garmentModel = models[0]?.value ?? productType;
@@ -51,12 +55,12 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
         productType,
         garmentModel,
         garmentColour: defaultColour,
-        quantity: 100,
+        quantity: defaultQty,
         placements: [],
         finishes: [],
       };
     });
-  }, [answers.garments]);
+  }, [answers.garments, answers.quantity]);
 
   const [projectData, setProjectData] = useState<ProjectConfiguratorData>({
     purpose: initialPurpose,
@@ -114,18 +118,37 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
         </p>
       </section>
 
-      {pricingAnchor && (
+      {(answers.quantity && getIndicativePricePerUnit(answers) != null) || pricingAnchor ? (
         <div className="p-4 rounded-lg border border-off-black/20 bg-off-white/30">
-          <p className="font-body text-xs text-off-black/70 mb-1">
-            Garment: {pricingAnchor.garmentLabel} · Print: {pricingAnchor.printLabel} · Quantity: {pricingAnchor.quantity} units
-          </p>
-          <p className="font-body text-xs text-off-black/60 mb-1">
-            Garment ${pricingAnchor.garmentCost.toFixed(2)} · Print (tier) ${pricingAnchor.printCost.toFixed(2)} · Setup spread ~${pricingAnchor.setupSpreadPerUnit.toFixed(2)}/unit
-          </p>
-          <p className="font-display font-bold text-off-black mt-2">{pricingAnchor.displayLine}</p>
-          <p className="font-body text-xs text-off-black/60 mt-1 italic">{pricingAnchor.note}</p>
+          {answers.quantity && getIndicativePricePerUnit(answers) != null ? (
+            (() => {
+              const minQ = getQuantityRangeMin(answers.quantity);
+              const maxQ = getQuantityRangeMax(answers.quantity);
+              const pricePerUnit = getIndicativePricePerUnit(answers)!;
+              const rangeText = minQ != null && maxQ != null ? `${minQ} – ${maxQ}` : maxQ != null ? `up to ${maxQ}` : "";
+              return (
+                <>
+                  <p className="font-display font-bold text-off-black">
+                    For your selection ({rangeText} units), indicative from ${pricePerUnit.toFixed(2)} per unit at {maxQ} units.
+                  </p>
+                  <p className="font-body text-xs text-off-black/60 mt-1 italic">Final pricing depends on configuration.</p>
+                </>
+              );
+            })()
+          ) : pricingAnchor ? (
+            <>
+              <p className="font-body text-xs text-off-black/70 mb-1">
+                Garment: {pricingAnchor.garmentLabel} · Print: {pricingAnchor.printLabel} · Quantity: {pricingAnchor.quantity} units
+              </p>
+              <p className="font-body text-xs text-off-black/60 mb-1">
+                Garment ${pricingAnchor.garmentCost.toFixed(2)} · Print (tier) ${pricingAnchor.printCost.toFixed(2)} · Setup spread ~${pricingAnchor.setupSpreadPerUnit.toFixed(2)}/unit
+              </p>
+              <p className="font-display font-bold text-off-black mt-2">{pricingAnchor.displayLine}</p>
+              <p className="font-body text-xs text-off-black/60 mt-1 italic">{pricingAnchor.note}</p>
+            </>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
       <ProjectConfigurator
         value={projectData}
