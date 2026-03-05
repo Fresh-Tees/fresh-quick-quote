@@ -46,22 +46,19 @@ export function QuestionStep({
       {isMulti ? (
         <div className="space-y-3">
           {question.options.map((opt) => (
-            <label
+            <button
               key={opt.value}
-              className={`flex items-center gap-3 w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 transition-[border-color,background-color] font-body text-base cursor-pointer ${
+              type="button"
+              onClick={() => handleMultiToggle(opt.value)}
+              className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 font-body text-base focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 ${
                 selected.has(opt.value)
                   ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
-                  : "border-off-white bg-white hover:border-burnt-orange/50 hover:bg-burnt-orange/5 text-off-black"
+                  : "border-off-white bg-white hover:border-off-black/30 hover:bg-off-white/80 text-off-black"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={selected.has(opt.value)}
-                onChange={() => handleMultiToggle(opt.value)}
-                className="rounded border-off-black/30 focus:ring-2 focus:ring-burnt-orange focus:ring-inset"
-              />
-              <span>{opt.label}</span>
-            </label>
+              {opt.label}
+              {selected.has(opt.value) ? " ✓" : ""}
+            </button>
           ))}
         </div>
       ) : (
