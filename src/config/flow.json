@@ -61,9 +61,9 @@
       "question": "Do you have final print-ready artwork? (e.g. AI, SVG, PNG)",
       "type": "single",
       "options": [
-        { "value": "yes", "label": "Yes" },
-        { "value": "partially", "label": "Partially" },
-        { "value": "no", "label": "No" }
+        { "value": "yes", "label": "Ready to print", "tooltip": "I have final vector artwork ready to go (AI, SVG, print-ready PDF)." },
+        { "value": "partially", "label": "Need minor help", "tooltip": "I have the concept and files, just need help preparing it for print." },
+        { "value": "no", "label": "Need full design support", "tooltip": "I need help creating or refining the design from scratch." }
       ]
     },
     {

@@ -1,6 +1,6 @@
 "use client";
 
-type Option = { value: string; label: string };
+type Option = { value: string; label: string; tooltip?: string };
 type LeftOption = { value: string; label: string; tooltip?: string };
 type Question = {
   id: string;
@@ -124,25 +124,41 @@ export function QuestionStep({
         </div>
       ) : (
         <div className="space-y-3">
-          {(question.options ?? []).map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                onAnswer(opt.value);
-                if (question.type === "single") {
-                  setTimeout(() => onNext(opt.value), 200);
-                }
-              }}
-              className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 font-body text-base focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 ${
-                value === opt.value
-                  ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
-                  : "border-off-white bg-white hover:bg-off-white/80 text-off-black"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+          {(question.options ?? []).map((opt) => {
+            const buttonEl = (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onAnswer(opt.value);
+                  if (question.type === "single") {
+                    setTimeout(() => onNext(opt.value), 200);
+                  }
+                }}
+                className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 font-body text-base focus:outline-none focus:ring-2 focus:ring-burnt-orange focus:ring-offset-2 ${
+                  value === opt.value
+                    ? "border-burnt-orange bg-burnt-orange/5 text-off-black"
+                    : "border-off-white bg-white hover:bg-off-white/80 text-off-black"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+            if (opt.tooltip) {
+              return (
+                <div key={opt.value} className="relative group">
+                  <div
+                    className="absolute bottom-full left-0 right-0 mb-1 px-3 py-2 rounded-lg bg-off-black text-white font-body text-sm opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity duration-150"
+                    role="tooltip"
+                  >
+                    {opt.tooltip}
+                  </div>
+                  {buttonEl}
+                </div>
+              );
+            }
+            return buttonEl;
+          })}
         </div>
       )}
 
