@@ -25,9 +25,10 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
   const calendlyUrl = getCalendlyUrl();
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const flowConfig = getFlowConfig();
-  const purposeQuestion = (flowConfig as {
+  const questions = (flowConfig as {
     questions?: { id: string; type?: string; options?: { value: string; label: string }[]; rightColumn?: { options: { value: string; label: string }[] } }[];
-  }).questions?.[0];
+  }).questions;
+  const purposeQuestion = questions?.find((q) => q.id === "purpose");
   const purposeOptions = purposeQuestion?.type === "project_tell"
     ? purposeQuestion?.rightColumn?.options
     : purposeQuestion?.options;

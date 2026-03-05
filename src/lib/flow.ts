@@ -3,7 +3,7 @@ import flowConfig from "@/config/flow.json";
 export type FlowConfig = typeof flowConfig;
 export type Answers = Record<string, string>;
 
-const smallQuantityValues = ["1-24", "25-49"];
+const smallQuantityValues = ["1-24"];
 
 export function isSmallOrder(answers: Answers): boolean {
   const q = answers.quantity;
