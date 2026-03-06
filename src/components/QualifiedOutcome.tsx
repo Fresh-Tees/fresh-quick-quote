@@ -126,10 +126,23 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
               const maxQ = getQuantityRangeMax(answers.quantity);
               const pricePerUnit = getIndicativePricePerUnit(answers)!;
               const rangeText = minQ != null && maxQ != null ? `${minQ} – ${maxQ}` : maxQ != null ? `up to ${maxQ}` : "";
+              const config = getProjectConfiguration();
+              const productLabels = initialProducts
+                .map((p) => config?.garmentModelsByProduct?.[p.productType]?.find((m) => m.value === p.garmentModel)?.label ?? p.garmentModel)
+                .filter(Boolean);
+              const productLabel =
+                productLabels.length === 0
+                  ? ""
+                  : productLabels.length === 1
+                    ? productLabels[0]
+                    : productLabels.length <= 2
+                      ? productLabels.join(" and ")
+                      : `${productLabels[0]} (and others)`;
               return (
                 <>
                   <p className="font-display font-bold text-off-black">
-                    For your selection ({rangeText} units), indicative from ${pricePerUnit.toFixed(2)} per unit at {maxQ} units.
+                    For your selection ({rangeText} units), indicative from ${pricePerUnit.toFixed(2)} per unit at {maxQ} units
+                    {productLabel ? ` for ${productLabel}.` : "."}
                   </p>
                   <p className="font-body text-xs text-off-black/60 mt-1 italic">Final pricing depends on configuration.</p>
                 </>
