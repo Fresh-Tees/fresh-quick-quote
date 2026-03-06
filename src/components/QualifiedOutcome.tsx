@@ -16,6 +16,7 @@ import {
   getWizardPurposeToProjectPurpose,
 } from "@/lib/flow";
 import type { ConfiguredProduct } from "@/lib/pricing";
+import { getGarmentCostPerUnit } from "@/lib/pricing";
 import { QuoteForm } from "./QuoteForm";
 import { ProjectConfigurator, type ProjectConfiguratorData } from "./ProjectConfigurator";
 import { useMemo, useState } from "react";
@@ -124,7 +125,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
             (() => {
               const minQ = getQuantityRangeMin(answers.quantity);
               const maxQ = getQuantityRangeMax(answers.quantity);
-              const pricePerUnit = getIndicativePricePerUnit(answers)!;
+              const printPerUnit = getIndicativePricePerUnit(answers)!;
               const rangeText = minQ != null && maxQ != null ? `${minQ} – ${maxQ}` : maxQ != null ? `up to ${maxQ}` : "";
               const config = getProjectConfiguration();
               const productLabels = initialProducts
@@ -138,11 +139,18 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
                     : productLabels.length <= 2
                       ? productLabels.join(" and ")
                       : `${productLabels[0]} (and others)`;
+              const firstProduct = initialProducts[0];
+              const garmentPerUnit = firstProduct ? getGarmentCostPerUnit(firstProduct.productType, firstProduct.garmentModel) : 0;
+              const totalPerUnit = garmentPerUnit + printPerUnit;
+
               return (
                 <>
                   <p className="font-display font-bold text-off-black">
-                    For your selection ({rangeText} units), indicative from ${pricePerUnit.toFixed(2)} per unit at {maxQ} units
+                    For your selection ({rangeText} units), indicative from ${totalPerUnit.toFixed(2)} per unit at {maxQ} units
                     {productLabel ? ` for ${productLabel}.` : "."}
+                  </p>
+                  <p className="font-body text-xs text-off-black/70 mt-1">
+                    Includes garment (${garmentPerUnit.toFixed(2)}/unit) + print (${printPerUnit.toFixed(2)}/unit).
                   </p>
                   <p className="font-body text-xs text-off-black/60 mt-1 italic">Final pricing depends on configuration.</p>
                 </>
