@@ -211,6 +211,117 @@
           { "value": "moss", "label": "Moss", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5001/WEB_THUMBNAILS/5001_STAPLE_TEE_MOSS_THUMB.jpg" },
           { "value": "coral", "label": "Coral", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5001/WEB_THUMBNAILS/5001_STAPLE_TEE_CORAL_THUMB.jpg" },
           { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5001/WEB_THUMBNAILS/5001_STAPLE_TEE_GREY_MARLE_THUMB.jpg" }
+        ],
+        "classic": [
+          { "value": "white", "label": "White", "pricingTier": "white", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_WHITE_THUMB.jpg" },
+          { "value": "bone", "label": "Bone", "pricingTier": "white", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_BONE_THUMB.jpg" },
+          { "value": "white-marle", "label": "White Marle", "pricingTier": "white", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-qvmnxltqps/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_WHITE_MARLE_THUMB.jpg" },
+          { "value": "ecru", "label": "Ecru", "pricingTier": "white", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_ECRU_THUMB.jpg" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_BLACK_THUMB.jpg" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-qvmnxltqps/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_NAVY_THUMB.jpg" },
+          { "value": "coal", "label": "Coal", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_COAL_THUMB.jpg" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_RED_THUMB.jpg" },
+          { "value": "burgundy", "label": "Burgundy", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-qvmnxltqps/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_BURGUNDY_THUMB.jpg" },
+          { "value": "grey-marle", "label": "Grey Marle", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-qvmnxltqps/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_GREY_MARLE_THUMB.jpg" },
+          { "value": "sand", "label": "Sand", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_SAND_THUMB.jpg" },
+          { "value": "camel", "label": "Camel", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_CAMEL_THUMB.jpg" },
+          { "value": "moss", "label": "Moss", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_MOSS_THUMB.jpg" },
+          { "value": "midnight-blue", "label": "Midnight Blue", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_MIDNIGHT_BLUE_THUMB.jpg" },
+          { "value": "bright-royal", "label": "Bright Royal", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_BRIGHT_ROYAL_THUMB.jpg" },
+          { "value": "plum", "label": "Plum", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_PLUM_THUMB.jpg" },
+          { "value": "yellow", "label": "Yellow", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-qvmnxltqps/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_YELLOW_THUMB.jpg" },
+          { "value": "sunset", "label": "Sunset", "pricingTier": "coloured", "swatchImageUrl": "https://cdn11.bigcommerce.com/s-lqiq2tqil5/images/stencil/160x160/uploaded_images/5026/WEB_THUMBNAILS/5026_CLASSIC_TEE_SUNSET_THUMB.jpg" }
+        ],
+        "heavy_faded": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" },
+          { "value": "burgundy", "label": "Burgundy", "pricingTier": "coloured" },
+          { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured" }
+        ]
+      },
+      "hoodies": {
+        "supply_hood": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" },
+          { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured" }
+        ],
+        "box_hood": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" },
+          { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured" }
+        ],
+        "made_hood": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" },
+          { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured" }
+        ]
+      },
+      "hats": {
+        "cap_std": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" },
+          { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured" }
+        ]
+      },
+      "corporate_wear": {
+        "oxford": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "light-blue", "label": "Light Blue", "pricingTier": "coloured" },
+          { "value": "pink", "label": "Pink", "pricingTier": "coloured" }
+        ],
+        "polo": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" },
+          { "value": "marle-grey", "label": "Grey Marle", "pricingTier": "coloured" }
+        ],
+        "puffer_vest": [
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "olive", "label": "Olive", "pricingTier": "coloured" }
+        ]
+      },
+      "work_wear": {
+        "hi_vis_polo": [
+          { "value": "yellow", "label": "Yellow", "pricingTier": "coloured" },
+          { "value": "orange", "label": "Orange", "pricingTier": "coloured" },
+          { "value": "lime", "label": "Lime", "pricingTier": "coloured" },
+          { "value": "pink", "label": "Pink", "pricingTier": "coloured" }
+        ],
+        "canvas_heavy_jacket": [
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "charcoal", "label": "Charcoal", "pricingTier": "coloured" },
+          { "value": "olive", "label": "Olive", "pricingTier": "coloured" }
+        ]
+      },
+      "tote_bags": {
+        "carrie": [
+          { "value": "white", "label": "White", "pricingTier": "white" },
+          { "value": "black", "label": "Black", "pricingTier": "coloured" },
+          { "value": "navy", "label": "Navy", "pricingTier": "coloured" },
+          { "value": "natural", "label": "Natural", "pricingTier": "white" },
+          { "value": "red", "label": "Red", "pricingTier": "coloured" }
         ]
       }
     },
