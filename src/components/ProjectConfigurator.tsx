@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { getProjectConfiguration, getGarmentColourOptionsForProduct } from "@/lib/flow";
 import {
   calculateProjectSummary,
@@ -9,6 +9,7 @@ import {
   type PlacementConfig,
   type ProjectSummary,
 } from "@/lib/pricing";
+import { ArtworkMockupCanvas } from "./ArtworkMockupCanvas";
 
 export type ContactDetails = {
   fullName: string;
@@ -82,6 +83,9 @@ export function ProjectConfigurator({
     sleeves: { printType: "screen", colourCount: 1 },
   });
   const [colourDropdownOpen, setColourDropdownOpen] = useState(false);
+  const [artworkUploading, setArtworkUploading] = useState(false);
+  const [artworkUploadError, setArtworkUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!config) return null;
 
@@ -518,6 +522,62 @@ export function ProjectConfigurator({
               </div>
             </div>
 
+            <div className="pt-2 border-t border-off-black/10">
+              <p className="font-body text-xs font-medium text-off-black/80 mb-2">Upload artwork</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  setArtworkUploadError(null);
+                  setArtworkUploading(true);
+                  try {
+                    const form = new FormData();
+                    form.set("file", f);
+                    const res = await fetch("/api/upload-artwork", { method: "POST", body: form });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                      setArtworkUploadError(data.error || "Upload failed.");
+                      return;
+                    }
+                    if (data.url) setAddingProduct((p) => ({ ...p, artworkUrl: data.url }));
+                  } catch {
+                    setArtworkUploadError("Upload failed. Please try again.");
+                  } finally {
+                    setArtworkUploading(false);
+                  }
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <button
+                  type="button"
+                  disabled={artworkUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="min-h-[44px] px-3 py-2 border border-off-black/30 rounded font-body text-sm text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
+                >
+                  {artworkUploading ? "Uploading…" : "Choose file"}
+                </button>
+                {addingProduct.artworkUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAddingProduct((p) => ({ ...p, artworkUrl: undefined }))}
+                    className="min-h-[44px] px-3 py-2 font-body text-sm text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+                  >
+                    Clear artwork
+                  </button>
+                )}
+              </div>
+              {artworkUploadError && (
+                <p className="font-body text-xs text-red-600 mb-2">{artworkUploadError}</p>
+              )}
+              <p className="font-body text-xs text-off-black/60 mb-2">PNG, JPEG, GIF, WebP or SVG, max 5MB. Preview shows artwork in the print area.</p>
+              <ArtworkMockupCanvas artworkUrl={addingProduct.artworkUrl} className="mt-2" />
+            </div>
+
             <div className="flex gap-2">
               <button
                 type="button"
@@ -639,6 +699,11 @@ export function ProjectConfigurator({
           {summary.productCalculations.map((calc, i) => (
             <div key={i} className="p-3 rounded bg-white border border-off-white">
               <p className="font-display font-bold text-off-black">{garmentModelLabel(products[i].productType, products[i].garmentModel)} × {calc.quantity}</p>
+              {products[i].artworkUrl && (
+                <div className="mt-2">
+                  <ArtworkMockupCanvas artworkUrl={products[i].artworkUrl} />
+                </div>
+              )}
               <dl className="mt-2 space-y-1 font-body text-sm">
                 <div className="flex justify-between"><dt className="text-off-black/70">Garment Total</dt><dd>{formatCurrency(calc.garmentTotal)}</dd></div>
                 {calc.placementBreakdown.map((pb, j) => (

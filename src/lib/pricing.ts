@@ -15,6 +15,8 @@ export type ConfiguredProduct = {
   finishes: string[];
   dueDate?: string;
   rushFlag?: boolean;
+  /** Public URL of uploaded artwork image (for mockup preview). */
+  artworkUrl?: string;
 };
 
 export type ProductCalculation = {
