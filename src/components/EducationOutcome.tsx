@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { getFlowConfig, getEducationGaps } from "@/lib/flow";
 import type { Answers } from "@/lib/flow";
@@ -77,6 +78,15 @@ export function EducationOutcome({ answers }: { answers: Answers }) {
       ) : (
         <QuoteForm answers={answers} context="education" />
       )}
+
+      <div className="pt-4 border-t border-off-black/10 mt-6 flex justify-center">
+        <Link
+          href="/"
+          className="font-body text-sm text-off-black/70 hover:text-off-black hover:underline"
+        >
+          Restart and go back to the start
+        </Link>
+      </div>
     </div>
   );
 }

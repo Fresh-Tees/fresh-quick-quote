@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 const COLLECTIONS_URL = "https://freshtees.com.au/collections";
 
 export function SmallOrderOutcome() {
@@ -16,6 +18,15 @@ export function SmallOrderOutcome() {
       >
         Order Now
       </a>
+
+      <div className="pt-4 border-t border-off-black/10 mt-6 flex justify-center">
+        <Link
+          href="/"
+          className="font-body text-sm text-off-black/70 hover:text-off-black hover:underline"
+        >
+          Restart and go back to the start
+        </Link>
+      </div>
     </div>
   );
 }
