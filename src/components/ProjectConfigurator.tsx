@@ -784,9 +784,22 @@ export function ProjectConfigurator({
       {summary && contactDetails && (
         <div className="space-y-4 pt-4 mt-4 border-t border-off-black/20 p-5 rounded-lg bg-off-white/40">
           {quoteSubmitted && (
-            <p className="font-body font-medium text-off-black p-3 rounded-lg bg-off-white/80 border border-off-black/10">
-              Your request has been received and you will hear from us within 24 hours.
-            </p>
+            <>
+              <p className="font-body font-medium text-off-black p-3 rounded-lg bg-off-white/80 border border-off-black/10">
+                Your request has been received and you will hear from us within 24 hours.
+              </p>
+              <p className="font-body text-sm text-off-black/80 mt-2">
+                Grab a copy of our onboarding guide to make sure you&apos;re ready to go.{" "}
+                <a
+                  href="/api/download-onboarding"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+                >
+                  Download
+                </a>
+              </p>
+            </>
           )}
           <p className="font-body text-xs font-medium text-off-black/70 uppercase tracking-wide">Pricing summary</p>
           <p className="font-body text-sm text-off-black/80">Thanks, here's your indicative pricing.</p>

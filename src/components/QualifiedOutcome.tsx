@@ -331,7 +331,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       <div className="max-w-xl mx-auto px-6 py-12 space-y-8">
         <section>
           <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-2">
-            You're in the right place for 50+ units
+            You're in the right place for managed services.
           </h1>
           <p className="font-body text-off-black/80 text-base mb-6">
             Enter your work email to see indicative pricing, or we can give you a call to discuss. Enquiries with phone numbers are processed priority.
@@ -387,7 +387,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
     <div className="max-w-xl mx-auto px-6 py-12 space-y-8">
       <section>
         <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-2">
-          You're in the right place for 50+ units
+          You're in the right place for managed services.
         </h1>
         <p className="font-body text-off-black/80 text-base">
           Let's get you a firm quote. Request a call or use the options below.
@@ -486,9 +486,22 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
 
       <div className="space-y-4">
         {showRequestCallMessage ? (
-          <p className="font-body text-off-black p-4 rounded-lg border border-off-black/20 bg-off-white/30">
-            We will contact you on the details you provided.
-          </p>
+          <div className="space-y-3">
+            <p className="font-body text-off-black p-4 rounded-lg border border-off-black/20 bg-off-white/30">
+              We will contact you on the details you provided.
+            </p>
+            <p className="font-body text-sm text-off-black/80">
+              Grab a copy of our onboarding guide to make sure you&apos;re ready to go.{" "}
+              <a
+                href="/api/download-onboarding"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+              >
+                Download
+              </a>
+            </p>
+          </div>
         ) : (
           <button
             type="button"

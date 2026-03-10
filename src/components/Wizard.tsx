@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getFlowConfig, isSmallOrder, isBulkOrder, isBulkQualified } from "@/lib/flow";
+import { getFlowConfig, isSmallOrder, isBulkOrder } from "@/lib/flow";
 import type { Answers } from "@/lib/flow";
 import { QuestionStep } from "./QuestionStep";
 import { SmallOrderOutcome } from "./SmallOrderOutcome";
@@ -38,11 +38,7 @@ export function Wizard() {
     setOutcomeAnswers(finalAnswers);
     setAnswers(finalAnswers);
     if (isBulkOrder(finalAnswers)) {
-      if (isBulkQualified(finalAnswers)) {
-        setScreen("qualified");
-      } else {
-        setScreen("education");
-      }
+      setScreen("qualified");
     } else {
       redirectToStudioFresh();
     }
