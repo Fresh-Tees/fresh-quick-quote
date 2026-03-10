@@ -60,6 +60,7 @@ export async function POST(request: Request) {
   try {
     const blob = await put(`artwork/${Date.now()}-${file.name}`, file, {
       access: "public",
+      token,
     });
     return NextResponse.json({ url: blob.url });
   } catch (e) {
