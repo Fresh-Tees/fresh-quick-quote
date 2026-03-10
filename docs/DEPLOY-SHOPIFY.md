@@ -54,12 +54,12 @@ Use your real storefront domain(s)—comma-separated, no spaces (or trim is appl
 1. **Online Store** → **Themes** → **Customize**.
 2. Open the page where you want the wizard (or create a **page** and assign a template that includes custom content).
 3. Add a **Custom Liquid** block (OS 2.0) or edit a template that allows custom HTML/Liquid.
-4. Paste (replace `YOUR_GATEWAY_URL` with your deployed URL):
+4. Paste this snippet (**keep the quotes around `src`**—without them the iframe may not load):
 
 ```liquid
 <div class="page-width" style="max-width: 100%;">
   <iframe
-    src="YOUR_GATEWAY_URL"
+    src="https://freshtees-gateway-visualiser.vercel.app"
     title="Get a quote"
     style="width: 100%; min-height: 85vh; border: 0;"
     loading="lazy"
@@ -67,9 +67,17 @@ Use your real storefront domain(s)—comma-separated, no spaces (or trim is appl
 </div>
 ```
 
-5. Ensure **FRAME_ANCESTORS_URLS** in Vercel includes your Shopify storefront origin(s), then redeploy.
+5. **Required for iframe to work:** In Vercel → Project → Settings → Environment Variables, set **FRAME_ANCESTORS_URLS** for Production to your Shopify origin(s), e.g.:
+   ```text
+   https://your-store.myshopify.com,https://www.freshtees.com.au
+   ```
+   Then **Redeploy** the project. Without this, the iframe will be blank or "refused to connect".
 
-If the iframe is blank or blocked, check the browser console for CSP/frame errors and that your gateway URL uses **https**.
+If the iframe is still blank or blocked:
+
+- **Check the exact origin:** When you view the Shopify page that has the iframe, look at the browser address bar. The origin must match exactly (e.g. `https://your-store.myshopify.com` or `https://www.freshtees.com.au`). Add every origin you use (with and without `www`) to **FRAME_ANCESTORS_URLS**, comma-separated.
+- **Confirm the header:** After redeploying, open the gateway URL in a new tab → DevTools → Network → reload → click the document request → Response Headers. You should see `Content-Security-Policy: frame-ancestors 'self' https://...`. If you only see `frame-ancestors 'self'`, the env var wasn’t applied (check spelling, environment = Production, then redeploy).
+- Check the browser console for CSP/frame errors and that the gateway URL uses **https**.
 
 ---
 
