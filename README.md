@@ -29,3 +29,7 @@ Without this token, the upload API returns 503 and the UI will show an error whe
 To run the gateway on your Shopify site: deploy to Vercel (or similar), then link or iframe the deployed URL from your theme. See **[docs/DEPLOY-SHOPIFY.md](docs/DEPLOY-SHOPIFY.md)** for step-by-step env vars, custom domain, and Shopify nav/iframe snippets.
 
 For iframe embeds, set `FRAME_ANCESTORS_URLS` in production (see `.env.example`) so the app can be framed by your storefront.
+ 
+ 
+ 
+ 
