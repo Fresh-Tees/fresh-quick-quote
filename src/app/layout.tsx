@@ -27,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${openSans.variable} ${dmSans.variable}`}>
-      <body className="min-h-screen">
+    <html lang="en" className={`${openSans.variable} ${dmSans.variable} bg-transparent`}>
+      <body className="min-h-screen bg-transparent">
         <BrandProvider>{children}</BrandProvider>
       </body>
     </html>

@@ -12,5 +12,6 @@
 }
 
 body {
-  @apply font-body text-off-black bg-white antialiased;
+  @apply font-body text-off-black antialiased;
+  background: transparent;
 }

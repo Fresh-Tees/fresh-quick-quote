@@ -569,7 +569,7 @@ export function ProjectConfigurator({
                           onClick={() => {
                             placementUploadTargetRef.current = opt.value;
                             setPlacementUploadTarget(opt.value);
-                            setTimeout(() => fileInputRef.current?.click(), 0);
+                            fileInputRef.current?.click();
                           }}
                           className="ml-1 min-h-[36px] px-2 py-1.5 border border-off-black/30 rounded text-sm font-body text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
                         >
