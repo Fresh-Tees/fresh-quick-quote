@@ -58,9 +58,18 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ url: blob.url });
   } catch (e) {
+    const message =
+      e instanceof Error
+        ? e.message
+        : typeof e === "string"
+          ? e
+          : "Unknown error";
     console.error("Upload error:", e);
     return NextResponse.json(
-      { error: "Upload failed. Please try again." },
+      {
+        error: "Upload failed. Please try again.",
+        details: message,
+      },
       { status: 500 }
     );
   }
