@@ -20,7 +20,7 @@ Edit **src/config/flow.json** to set your design tool URL, Calendly link, privac
 To enable “Upload artwork” in the configurator and store files in [Vercel Blob](https://vercel.com/docs/storage/vercel-blob):
 
 1. Copy `.env.example` to `.env.local`.
-2. Create a Blob store in the Vercel dashboard and set `BLOB_READ_WRITE_TOKEN` in `.env.local`.
+2. Create a Blob store in the Vercel dashboard and set `BLOB_READ_WRITE_TOKEN` in `.env.local` (or `FRESHBLOB_READ_WRITE_TOKEN` if your Vercel project uses that name).
 
 Without this token, the upload API returns 503 and the UI will show an error when a user tries to upload.
 

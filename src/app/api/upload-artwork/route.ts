@@ -12,10 +12,15 @@ const ALLOWED_TYPES = [
 ];
 
 export async function POST(request: Request) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  // Support either env var name to avoid Vercel project mismatches.
+  // Prefer the standard name but fall back to the FreshTees-specific one.
+  const token = process.env.BLOB_READ_WRITE_TOKEN ?? process.env.FRESHBLOB_READ_WRITE_TOKEN;
   if (!token) {
     return NextResponse.json(
-      { error: "Artwork upload is not configured (missing BLOB_READ_WRITE_TOKEN)." },
+      {
+        error:
+          "Artwork upload is not configured (missing BLOB_READ_WRITE_TOKEN or FRESHBLOB_READ_WRITE_TOKEN).",
+      },
       { status: 503 }
     );
   }

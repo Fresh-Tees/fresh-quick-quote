@@ -10,7 +10,8 @@ The app is a standalone Next.js site. It does not run inside Shopify’s servers
 
    | Variable | Notes |
    |----------|--------|
-   | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for artwork uploads |
+   | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for artwork uploads (preferred) |
+   | `FRESHBLOB_READ_WRITE_TOKEN` | Optional alias if your project uses a different name |
    | `QUOTE_NOTIFY_EMAIL` | Inbox that receives quote emails |
    | `SMTP_HOST` | e.g. `smtp.elasticemail.com` |
    | `SMTP_PORT` | e.g. `2525` or `587` |
