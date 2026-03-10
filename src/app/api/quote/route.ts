@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { sendQuoteEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, message, marketingConsent, context, answers, project_purpose, artworkStatus, project_products, contact_details, indicative_pricing_shown, timestamp } = body;
+    const { name, email, phone, message, marketingConsent, context, answers, project_purpose, artworkStatus, project_products, contact_details, indicative_pricing_shown, timestamp, freeEmailLead } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -27,13 +28,14 @@ export async function POST(request: Request) {
       ...(indicative_pricing_shown != null && { indicative_pricing_shown }),
       timestamp: timestamp ?? new Date().toISOString(),
       submittedAt: new Date().toISOString(),
+      ...(freeEmailLead === true && { freeEmailLead: true }),
     };
 
-    // TODO: Send to your inbox (e.g. Elfsight webhook, Nodemailer, or VTiger API).
-    console.log("Quote request:", payload);
+    await sendQuoteEmail(payload);
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("Quote error", err);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

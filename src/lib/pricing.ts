@@ -4,6 +4,8 @@ export type PlacementConfig = {
   location: string;
   printType: "screen" | "embroidery" | "dtf" | "unsure";
   colourCount?: number;
+  /** Public URL of uploaded artwork for this placement. */
+  artworkUrl?: string;
 };
 
 export type ConfiguredProduct = {

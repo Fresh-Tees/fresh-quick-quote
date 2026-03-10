@@ -43,6 +43,7 @@ export function QuoteForm({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
+  const [lastPayload, setLastPayload] = useState<Record<string, unknown> | null>(null);
   const privacyUrl = getPrivacyPolicyUrl();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,26 +58,29 @@ export function QuoteForm({
     }
     setFieldErrors({});
     try {
+      const payload: Record<string, unknown> = {
+        name,
+        email,
+        phone,
+        message,
+        marketingConsent: marketing,
+        context,
+        answers,
+        ...(projectData && {
+          project_purpose: projectData.project_purpose,
+          artworkStatus: projectData.artwork_status,
+          contact_details: projectData.contact_details ?? { fullName: name, email, phone },
+          project_products: projectData.products,
+          indicative_pricing_shown: projectData.indicative_pricing_shown,
+          timestamp: projectData.timestamp ?? new Date().toISOString(),
+        }),
+      };
+      setLastPayload(payload);
+
       const res = await fetch("/api/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          phone,
-          message,
-          marketingConsent: marketing,
-          context,
-          answers,
-          ...(projectData && {
-            project_purpose: projectData.project_purpose,
-            artworkStatus: projectData.artwork_status,
-            contact_details: projectData.contact_details ?? { fullName: name, email, phone },
-            project_products: projectData.products,
-            indicative_pricing_shown: projectData.indicative_pricing_shown,
-            timestamp: projectData.timestamp ?? new Date().toISOString(),
-          }),
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Something went wrong");
       setSent(true);
@@ -85,12 +89,34 @@ export function QuoteForm({
     }
   };
 
+  const handleDownloadSummary = () => {
+    if (!lastPayload) return;
+    const blob = new Blob([JSON.stringify(lastPayload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `freshtees-quote-${new Date().toISOString()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (sent) {
     return (
       <div className="p-4 rounded-lg bg-off-white/50 border border-off-black/10">
-        <p className="font-body font-medium text-off-black">
+        <p className="font-body font-medium text-off-black mb-3">
           Thanks. We've got your details and will be in touch.
         </p>
+        {lastPayload && (
+          <button
+            type="button"
+            onClick={handleDownloadSummary}
+            className="min-h-[44px] px-4 py-2 border border-off-black/30 rounded font-body text-sm text-off-black hover:bg-off-white/60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          >
+            Download a copy of your quote details
+          </button>
+        )}
       </div>
     );
   }

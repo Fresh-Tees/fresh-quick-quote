@@ -195,7 +195,17 @@ export function getGarmentColourPricingTier(
   }
   const globalOpt = pc?.garmentColourOptions?.find((o) => o.value === colourValue);
   if (globalOpt?.pricingTier) return globalOpt.pricingTier;
+  if (colourValue === "other") return "coloured";
   return colourValue === "coloured" ? "coloured" : "white";
+}
+
+/** Restricted colour options (Black, White, Other) with no swatches, for use in configurator. */
+export function getRestrictedColourOptions(): { value: string; label: string; pricingTier: "white" | "coloured" }[] {
+  return [
+    { value: "black", label: "Black", pricingTier: "coloured" },
+    { value: "white", label: "White", pricingTier: "white" },
+    { value: "other", label: "Other", pricingTier: "coloured" },
+  ];
 }
 
 /** Returns colour options for a product type + model, or global options. */

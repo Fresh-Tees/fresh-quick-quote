@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { getProjectConfiguration, getGarmentColourOptionsForProduct } from "@/lib/flow";
+import { getProjectConfiguration, getRestrictedColourOptions, type Answers } from "@/lib/flow";
 import {
   calculateProjectSummary,
   getVolumeIncentiveMessage,
@@ -47,11 +47,13 @@ export function ProjectConfigurator({
   onChange,
   initialPurpose,
   purposeLabel,
+  answers,
 }: {
   value: ProjectConfiguratorData;
   onChange: (data: ProjectConfiguratorData) => void;
   initialPurpose?: string;
   purposeLabel?: string;
+  answers?: Answers;
 }) {
   const config = getProjectConfiguration();
   const [purpose, setPurpose] = useState(value.purpose || initialPurpose || "");
@@ -77,20 +79,23 @@ export function ProjectConfigurator({
     finishes: [],
   });
   const [placementChecks, setPlacementChecks] = useState<Record<string, boolean>>({ front: false, back: false, sleeves: false });
-  const [placementDetails, setPlacementDetails] = useState<Record<string, { printType: PlacementPrintType; colourCount: number }>>({
+  const [placementDetails, setPlacementDetails] = useState<Record<string, { printType: PlacementPrintType; colourCount: number; artworkUrl?: string }>>({
     front: { printType: "screen", colourCount: 1 },
     back: { printType: "screen", colourCount: 1 },
     sleeves: { printType: "screen", colourCount: 1 },
   });
-  const [colourDropdownOpen, setColourDropdownOpen] = useState(false);
-  const [artworkUploading, setArtworkUploading] = useState(false);
+  const [placementUploading, setPlacementUploading] = useState<string | null>(null);
+  const [placementUploadTarget, setPlacementUploadTarget] = useState<string | null>(null);
+  const [quoteSubmitted, setQuoteSubmitted] = useState(false);
+  const [submitQuoteError, setSubmitQuoteError] = useState<string | null>(null);
+  const [submitQuoteLoading, setSubmitQuoteLoading] = useState(false);
   const [artworkUploadError, setArtworkUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const placementUploadTargetRef = useRef<string | null>(null);
 
   if (!config) return null;
 
-  const colourOptions = getGarmentColourOptionsForProduct(addingProduct.productType, addingProduct.garmentModel);
-  const hasSwatches = colourOptions.some((o) => "swatchImageUrl" in o && o.swatchImageUrl);
+  const colourOptions = getRestrictedColourOptions();
 
   const productTypeLabel = (v: string) => config.productTypes.find((t) => t.value === v)?.label ?? v;
   const garmentModelLabel = (productType: string, modelValue: string) =>
@@ -119,18 +124,29 @@ export function ProjectConfigurator({
 
   const addProduct = () => {
     const placements: PlacementConfig[] = [];
+    const missingArtwork: string[] = [];
     (["front", "back", "sleeves"] as const).forEach((loc) => {
       if (!placementChecks[loc]) return;
       const d = placementDetails[loc];
       if (!d) return;
       if (d.printType === "screen" && addingProduct.quantity < screenMinQty) return;
+      if (!d.artworkUrl) missingArtwork.push(placementLabel(loc));
       placements.push({
         location: loc,
         printType: d.printType,
         ...(d.printType === "screen" && { colourCount: d.colourCount }),
+        ...(d.artworkUrl && { artworkUrl: d.artworkUrl }),
       });
     });
-    if (placements.length === 0) return;
+    if (placements.length === 0) {
+      setArtworkUploadError("Must select at least one placement.");
+      return;
+    }
+    if (missingArtwork.length > 0) {
+      setArtworkUploadError(`Please upload artwork for each selected placement: ${missingArtwork.join(", ")}`);
+      return;
+    }
+    setArtworkUploadError(null);
     const next: ConfiguredProduct = {
       ...addingProduct,
       garmentModel: models.length ? addingProduct.garmentModel : addingProduct.productType,
@@ -154,6 +170,7 @@ export function ProjectConfigurator({
     });
     setPlacementChecks({ front: false, back: false, sleeves: false });
     setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
+    setArtworkUploadError(null);
     onChange({ purpose, artworkStatus: value.artworkStatus, products: nextProducts, dueDate, rushFlag, summary: null, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
   };
 
@@ -179,13 +196,13 @@ export function ProjectConfigurator({
       if (pl.location in checks) checks[pl.location] = true;
     });
     setPlacementChecks(checks);
-    const details: Record<string, { printType: PlacementPrintType; colourCount: number }> = {
+    const details: Record<string, { printType: PlacementPrintType; colourCount: number; artworkUrl?: string }> = {
       front: { printType: "screen", colourCount: 1 },
       back: { printType: "screen", colourCount: 1 },
       sleeves: { printType: "screen", colourCount: 1 },
     };
     p.placements.forEach((pl) => {
-      details[pl.location] = { printType: pl.printType, colourCount: pl.colourCount ?? 1 };
+      details[pl.location] = { printType: pl.printType, colourCount: pl.colourCount ?? 1, ...(pl.artworkUrl && { artworkUrl: pl.artworkUrl }) };
     });
     setPlacementDetails(details);
     setShowAddForm(true);
@@ -204,6 +221,7 @@ export function ProjectConfigurator({
     });
     setPlacementChecks({ front: false, back: false, sleeves: false });
     setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
+    setArtworkUploadError(null);
   };
 
   const toggleFinish = (f: string) => {
@@ -252,6 +270,97 @@ export function ProjectConfigurator({
   };
 
   const showRush = dueDate && businessDaysFromToday(dueDate) < (config.businessDaysForRushThreshold ?? 10);
+
+  const contactForSubmit = contactDetails ?? value.contactDetails ?? null;
+
+  const handleSubmitQuoteAndReveal = async () => {
+    setSubmitQuoteError(null);
+    if (!dueDate?.trim()) {
+      setSubmitQuoteError("Please set a due date.");
+      return;
+    }
+    if (!contactForSubmit) {
+      setSubmitQuoteError("Contact details are required. Please enter your details above.");
+      setShowContactForm(true);
+      return;
+    }
+    const missingArtwork: string[] = [];
+    products.forEach((p, i) => {
+      p.placements.forEach((pl) => {
+        if (!pl.artworkUrl) missingArtwork.push(`Product ${i + 1} – ${placementLabel(pl.location)}`);
+      });
+    });
+    if (missingArtwork.length > 0) {
+      setSubmitQuoteError(`Please upload artwork for each placement: ${missingArtwork.join("; ")}`);
+      return;
+    }
+    const computedSummary = calculateProjectSummary(products);
+    setSubmitQuoteLoading(true);
+    try {
+      const payload = {
+        name: contactForSubmit.fullName,
+        email: contactForSubmit.email,
+        phone: contactForSubmit.phone ?? "",
+        message: "",
+        marketingConsent: false,
+        context: "qualified",
+        answers: answers ?? {},
+        project_purpose: purpose,
+        artwork_status: value.artworkStatus,
+        contact_details: contactForSubmit,
+        project_products: products.map((p, i) => ({
+          product_type: p.productType,
+          garment_model: p.garmentModel,
+          garment_colour: p.garmentColour,
+          quantity: p.quantity,
+          placements: p.placements.map((pl) => ({
+            location: pl.location,
+            print_type: pl.printType,
+            ...(pl.colourCount != null && { colour_count: pl.colourCount }),
+            ...(pl.artworkUrl && { artwork_url: pl.artworkUrl }),
+          })),
+          finishes: p.finishes,
+          due_date: dueDate || undefined,
+          rush_flag: rushFlag,
+          indicative_total: computedSummary.productCalculations[i]?.productTotal,
+        })),
+        indicative_pricing_shown: {
+          estimatedProjectTotal: computedSummary.estimatedProjectTotal,
+          totalUnits: computedSummary.totalUnits,
+          productCalculations: computedSummary.productCalculations,
+        },
+        timestamp: new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
+      };
+      const res = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Something went wrong");
+      }
+      setSummary(computedSummary);
+      if (!contactDetails) setContactDetails(contactForSubmit);
+      setContactSubmittedAt(new Date().toISOString());
+      setQuoteSubmitted(true);
+      onChange({
+        purpose,
+        artworkStatus: value.artworkStatus,
+        products,
+        dueDate,
+        rushFlag,
+        summary: computedSummary,
+        contactDetails: contactForSubmit,
+        contactSubmittedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      setSubmitQuoteError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitQuoteLoading(false);
+    }
+  };
 
   return (
     <div className="mb-8 p-4 rounded-lg border border-off-black/20 bg-off-white/20">
@@ -372,62 +481,15 @@ export function ProjectConfigurator({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block font-body text-xs text-off-black/70">Garment colour</label>
-                {hasSwatches ? (
-                  <div className="relative mt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setColourDropdownOpen((v) => !v)}
-                      className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm text-left flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 bg-white"
-                    >
-                      {(() => {
-                        const opt = colourOptions.find((o) => o.value === addingProduct.garmentColour);
-                        return opt ? (
-                          <>
-                            {"swatchImageUrl" in opt && opt.swatchImageUrl && (
-                              <img src={opt.swatchImageUrl} alt="" className="w-8 h-8 rounded object-cover border border-off-white shrink-0" />
-                            )}
-                            <span>{opt.label}</span>
-                          </>
-                        ) : (
-                          <span className="text-off-black/60">Select colour</span>
-                        );
-                      })()}
-                    </button>
-                    {colourDropdownOpen && (
-                      <>
-                        <div className="fixed inset-0 z-10" aria-hidden onClick={() => setColourDropdownOpen(false)} />
-                        <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-64 overflow-auto rounded border border-off-black/20 bg-white shadow-lg py-1">
-                          {colourOptions.map((o) => (
-                            <button
-                              key={o.value}
-                              type="button"
-                              onClick={() => {
-                                setAddingProduct((p) => ({ ...p, garmentColour: o.value }));
-                                setColourDropdownOpen(false);
-                              }}
-                              className="w-full px-3 py-2 flex items-center gap-2 text-left text-sm hover:bg-off-white/80 focus:outline-none focus:bg-off-white/80"
-                            >
-                              {"swatchImageUrl" in o && o.swatchImageUrl && (
-                                <img src={o.swatchImageUrl} alt="" className="w-8 h-8 rounded object-cover border border-off-white shrink-0" />
-                              )}
-                              <span>{o.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <select
-                    value={addingProduct.garmentColour}
-                    onChange={(e) => setAddingProduct((p) => ({ ...p, garmentColour: e.target.value }))}
-                    className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                  >
-                    {colourOptions.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                )}
+                <select
+                  value={colourOptions.some((o) => o.value === addingProduct.garmentColour) ? addingProduct.garmentColour : "white"}
+                  onChange={(e) => setAddingProduct((p) => ({ ...p, garmentColour: e.target.value }))}
+                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                >
+                  {colourOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block font-body text-xs text-off-black/70">Quantity (min 50)</label>
@@ -499,6 +561,33 @@ export function ProjectConfigurator({
                           </select>
                         </div>
                       )}
+                      <div className="mt-2">
+                        <span className="font-body text-xs text-off-black/70">Artwork </span>
+                        <button
+                          type="button"
+                          disabled={!!placementUploading}
+                          onClick={() => {
+                            placementUploadTargetRef.current = opt.value;
+                            setPlacementUploadTarget(opt.value);
+                            setTimeout(() => fileInputRef.current?.click(), 0);
+                          }}
+                          className="ml-1 min-h-[36px] px-2 py-1.5 border border-off-black/30 rounded text-sm font-body text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
+                        >
+                          {placementUploading === opt.value ? "Uploading…" : (placementDetails[opt.value]?.artworkUrl ? "Replace" : "Upload")} artwork ({opt.label})
+                        </button>
+                        {placementDetails[opt.value]?.artworkUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setPlacementDetails((d) => ({
+                              ...d,
+                              [opt.value]: { ...d[opt.value], artworkUrl: undefined },
+                            }))}
+                            className="ml-2 font-body text-xs text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -522,61 +611,46 @@ export function ProjectConfigurator({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-off-black/10">
-              <p className="font-body text-xs font-medium text-off-black/80 mb-2">Upload artwork</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                className="hidden"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (!f) return;
-                  setArtworkUploadError(null);
-                  setArtworkUploading(true);
-                  try {
-                    const form = new FormData();
-                    form.set("file", f);
-                    const res = await fetch("/api/upload-artwork", { method: "POST", body: form });
-                    const data = await res.json().catch(() => ({}));
-                    if (!res.ok) {
-                      setArtworkUploadError(data.error || "Upload failed.");
-                      return;
-                    }
-                    if (data.url) setAddingProduct((p) => ({ ...p, artworkUrl: data.url }));
-                  } catch {
-                    setArtworkUploadError("Upload failed. Please try again.");
-                  } finally {
-                    setArtworkUploading(false);
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+              className="hidden"
+              onChange={async (e) => {
+                const placement = placementUploadTargetRef.current;
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f || !placement) return;
+                placementUploadTargetRef.current = null;
+                setArtworkUploadError(null);
+                setPlacementUploading(placement);
+                try {
+                  const form = new FormData();
+                  form.set("file", f);
+                  const res = await fetch("/api/upload-artwork", { method: "POST", body: form });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    setArtworkUploadError(data.error || "Upload failed.");
+                    return;
                   }
-                }}
-              />
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <button
-                  type="button"
-                  disabled={artworkUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="min-h-[44px] px-3 py-2 border border-off-black/30 rounded font-body text-sm text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
-                >
-                  {artworkUploading ? "Uploading…" : "Choose file"}
-                </button>
-                {addingProduct.artworkUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setAddingProduct((p) => ({ ...p, artworkUrl: undefined }))}
-                    className="min-h-[44px] px-3 py-2 font-body text-sm text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
-                  >
-                    Clear artwork
-                  </button>
-                )}
-              </div>
-              {artworkUploadError && (
-                <p className="font-body text-xs text-red-600 mb-2">{artworkUploadError}</p>
-              )}
-              <p className="font-body text-xs text-off-black/60 mb-2">PNG, JPEG, GIF, WebP or SVG, max 5MB. Preview shows artwork in the print area.</p>
-              <ArtworkMockupCanvas artworkUrl={addingProduct.artworkUrl} className="mt-2" />
-            </div>
+                  if (data.url) {
+                    setPlacementDetails((d) => ({
+                      ...d,
+                      [placement]: { ...(d[placement] ?? { printType: "screen" as const, colourCount: 1 }), artworkUrl: data.url },
+                    }));
+                  }
+                } catch {
+                  setArtworkUploadError("Upload failed. Please try again.");
+                } finally {
+                  setPlacementUploading(null);
+                  setPlacementUploadTarget(null);
+                }
+              }}
+            />
+            {artworkUploadError && (
+              <p className="font-body text-xs text-red-600 mb-2">{artworkUploadError}</p>
+            )}
+            <p className="font-body text-xs text-off-black/60 mb-2">Upload one artwork file per selected placement. PNG, JPEG, GIF, WebP or SVG, max 5MB.</p>
 
             <div className="flex gap-2">
               <button
@@ -618,7 +692,23 @@ export function ProjectConfigurator({
         </div>
       )}
 
-      {products.length > 0 && !contactDetails && (
+      {products.length > 0 && !quoteSubmitted && (
+        <div className="mb-4">
+          <button
+            type="button"
+            disabled={submitQuoteLoading}
+            onClick={handleSubmitQuoteAndReveal}
+            className="min-h-[44px] w-full px-6 py-3 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-70"
+          >
+            {submitQuoteLoading ? "Submitting…" : "Submit Request and Reveal Estimate"}
+          </button>
+          {submitQuoteError && (
+            <p className="font-body text-sm text-red-600 mt-2">{submitQuoteError}</p>
+          )}
+        </div>
+      )}
+
+      {products.length > 0 && !contactDetails && !quoteSubmitted && (
         <div className="mb-4">
           <button
             type="button"
@@ -693,6 +783,11 @@ export function ProjectConfigurator({
 
       {summary && contactDetails && (
         <div className="space-y-4 pt-4 mt-4 border-t border-off-black/20 p-5 rounded-lg bg-off-white/40">
+          {quoteSubmitted && (
+            <p className="font-body font-medium text-off-black p-3 rounded-lg bg-off-white/80 border border-off-black/10">
+              Your request has been received and you will hear from us within 24 hours.
+            </p>
+          )}
           <p className="font-body text-xs font-medium text-off-black/70 uppercase tracking-wide">Pricing summary</p>
           <p className="font-body text-sm text-off-black/80">Thanks, here's your indicative pricing.</p>
           <p className="font-display font-bold text-off-black">Product Breakdown</p>

@@ -122,10 +122,11 @@
     "rushNote": "Rush subject to production capacity."
   },
   "quoteProcessSteps": [
-    "Complete intake received",
+    "We review and confirm your request",
     "System-generated quote issued (you accept the quote)",
     "Invoice auto-generated (payment required before production)",
-    "Spec sheet generated (your approval required)"
+    "Spec sheet generated (your approval required)",
+    "Production"
   ],
   "screenPrintPricing": {
     "baseline": "1 colour, white garments. Pricing assumes supplied vector artwork; standard print size applies.",
