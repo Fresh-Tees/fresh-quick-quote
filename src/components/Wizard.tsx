@@ -9,7 +9,15 @@ import { EducationOutcome } from "./EducationOutcome";
 import { QualifiedOutcome } from "./QualifiedOutcome";
 import { PlacementGuidancePage } from "./PlacementGuidancePage";
 
+const STUDIO_FRESH_URL = "https://freshtees.com.au/pages/studio-fresh";
+
 type Screen = "wizard" | "small" | "education" | "qualified" | "placement_guidance";
+
+function redirectToStudioFresh() {
+  if (typeof window !== "undefined") {
+    window.top!.location.href = STUDIO_FRESH_URL;
+  }
+}
 
 export function Wizard() {
   const config = getFlowConfig();
@@ -36,7 +44,7 @@ export function Wizard() {
         setScreen("education");
       }
     } else {
-      setScreen("small");
+      redirectToStudioFresh();
     }
   };
 
@@ -46,7 +54,7 @@ export function Wizard() {
       : answers;
 
     if (currentQuestion?.id === "quantity" && isSmallOrder({ ...merged, quantity: merged.quantity || "" })) {
-      setScreen("small");
+      redirectToStudioFresh();
       return;
     }
 
@@ -79,6 +87,7 @@ export function Wizard() {
   };
 
   if (screen === "small") {
+    redirectToStudioFresh();
     return <SmallOrderOutcome />;
   }
   if (screen === "education") {
@@ -117,7 +126,7 @@ export function Wizard() {
             ? (value) => {
                 setAnswer("intent", value);
                 if (value === "personal") {
-                  setScreen("small");
+                  redirectToStudioFresh();
                 } else {
                   goNext();
                 }

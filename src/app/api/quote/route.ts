@@ -4,7 +4,7 @@ import { sendQuoteEmail } from "@/lib/email";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, message, marketingConsent, context, answers, project_purpose, artworkStatus, project_products, contact_details, indicative_pricing_shown, timestamp, freeEmailLead } = body;
+    const { name, email, phone, message, marketingConsent, context, answers, project_purpose, artworkStatus, project_products, contact_details, indicative_pricing_shown, indicativePricingSummary, timestamp, freeEmailLead } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       ...(contact_details != null && { contact_details }),
       ...(project_products != null && { project_products }),
       ...(indicative_pricing_shown != null && { indicative_pricing_shown }),
+      ...(indicativePricingSummary != null && { indicativePricingSummary }),
       timestamp: timestamp ?? new Date().toISOString(),
       submittedAt: new Date().toISOString(),
       ...(freeEmailLead === true && { freeEmailLead: true }),

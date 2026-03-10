@@ -2,7 +2,6 @@
 
 import type { Answers } from "@/lib/flow";
 import {
-  getCalendlyUrl,
   getFlowConfig,
   getGarmentSelectionsAsProductTypes,
   getIndicativePackagePricing,
@@ -123,11 +122,11 @@ function FreeEmailLeadForm({
 }
 
 export function QualifiedOutcome({ answers }: { answers: Answers }) {
-  const calendlyUrl = getCalendlyUrl();
   const [gateContact, setGateContact] = useState<GateContact | null>(null);
   const [emailIsProfessional, setEmailIsProfessional] = useState<boolean | null>(null);
   const [gateError, setGateError] = useState<string | null>(null);
   const [showConfigurator, setShowConfigurator] = useState(false);
+  const [showRequestCallMessage, setShowRequestCallMessage] = useState(false);
   const flowConfig = getFlowConfig();
   const questions = (flowConfig as {
     questions?: { id: string; type?: string; options?: { value: string; label: string }[]; rightColumn?: { options: { value: string; label: string }[] } }[];
@@ -258,7 +257,30 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
     ) : null
   ) : null;
 
-  const handleGateSubmit = (e: React.FormEvent) => {
+  const buildIndicativePricingSummary = (): string => {
+    if (answers.quantity && getIndicativePricePerUnit(answers) != null) {
+      const minQ = getQuantityRangeMin(answers.quantity);
+      const maxQ = getQuantityRangeMax(answers.quantity);
+      const printPerUnit = getIndicativePricePerUnit(answers)!;
+      const rangeText = minQ != null && maxQ != null ? `${minQ} – ${maxQ}` : maxQ != null ? `up to ${maxQ}` : "";
+      const config = getProjectConfiguration();
+      const productLabels = initialProducts
+        .map((p) => config?.garmentModelsByProduct?.[p.productType]?.find((m) => m.value === p.garmentModel)?.label ?? p.garmentModel)
+        .filter(Boolean);
+      const productLabel =
+        productLabels.length === 0 ? "" : productLabels.length === 1 ? productLabels[0] : productLabels.length <= 2 ? productLabels.join(" and ") : `${productLabels[0]} (and others)`;
+      const firstProduct = initialProducts[0];
+      const garmentPerUnit = firstProduct ? getGarmentCostPerUnit(firstProduct.productType, firstProduct.garmentModel) : 0;
+      const totalPerUnit = garmentPerUnit + printPerUnit;
+      return `For selection (${rangeText} units), indicative from $${totalPerUnit.toFixed(2)} per unit at ${maxQ} units${productLabel ? ` for ${productLabel}` : ""}. Includes garment ($${garmentPerUnit.toFixed(2)}/unit) + print ($${printPerUnit.toFixed(2)}/unit). Final pricing depends on configuration.`;
+    }
+    if (pricingAnchor) {
+      return `Garment: ${pricingAnchor.garmentLabel} · Print: ${pricingAnchor.printLabel} · Quantity: ${pricingAnchor.quantity} units. Garment $${pricingAnchor.garmentCost.toFixed(2)} · Print (tier) $${pricingAnchor.printCost.toFixed(2)} · Setup spread ~$${pricingAnchor.setupSpreadPerUnit.toFixed(2)}/unit. ${pricingAnchor.displayLine} ${pricingAnchor.note}`;
+    }
+    return "No indicative pricing shown.";
+  };
+
+  const handleGateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGateError(null);
     const form = e.currentTarget;
@@ -278,6 +300,28 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
         ...prev,
         contactDetails: { fullName: name, email, phone },
       }));
+      const indicativePricingSummary = buildIndicativePricingSummary();
+      try {
+        await fetch("/api/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            email,
+            phone,
+            message: "",
+            marketingConsent: false,
+            context: "indicative_pricing",
+            contact_details: { fullName: name, email, phone },
+            indicativePricingSummary,
+            answers,
+            timestamp: new Date().toISOString(),
+            submittedAt: new Date().toISOString(),
+          }),
+        });
+      } catch {
+        // Fire-and-forget; don't block revealing pricing
+      }
     }
   };
 
@@ -346,7 +390,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
           You're in the right place for 50+ units
         </h1>
         <p className="font-body text-off-black/80 text-base">
-          Let's get you a firm quote. Book a quick call or leave your details below.
+          Let's get you a firm quote. Request a call or use the options below.
         </p>
       </section>
 
@@ -441,14 +485,43 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       )}
 
       <div className="space-y-4">
-        <a
-          href={calendlyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center min-h-[44px] w-full px-8 py-4 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-        >
-          Book a call
-        </a>
+        {showRequestCallMessage ? (
+          <p className="font-body text-off-black p-4 rounded-lg border border-off-black/20 bg-off-white/30">
+            We will contact you on the details you provided.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={async () => {
+              setShowRequestCallMessage(true);
+              const contact = projectData.contactDetails ?? (gateContact ? { fullName: gateContact.name, email: gateContact.email, phone: gateContact.phone } : null);
+              if (contact) {
+                try {
+                  await fetch("/api/quote", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      name: contact.fullName,
+                      email: contact.email,
+                      phone: contact.phone ?? "",
+                      message: "",
+                      marketingConsent: false,
+                      context: "request_call",
+                      contact_details: contact,
+                      timestamp: new Date().toISOString(),
+                      submittedAt: new Date().toISOString(),
+                    }),
+                  });
+                } catch {
+                  // Fire-and-forget
+                }
+              }
+            }}
+            className="flex items-center justify-center min-h-[44px] w-full px-8 py-4 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          >
+            Request a call
+          </button>
+        )}
       </div>
 
       <div className="pt-4 border-t border-off-black/10 mt-6 flex justify-center">

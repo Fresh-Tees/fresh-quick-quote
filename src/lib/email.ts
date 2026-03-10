@@ -35,6 +35,7 @@ type QuotePayload = {
   timestamp: string;
   submittedAt: string;
   freeEmailLead?: boolean;
+  indicativePricingSummary?: string;
 };
 
 function ensureEmailConfig() {
@@ -74,6 +75,12 @@ function formatQuoteEmailSubject(payload: QuotePayload): string {
   if (payload.freeEmailLead) {
     return `Free-email lead – please call – ${name}`;
   }
+  if (payload.context === "indicative_pricing") {
+    return `Viewed indicative pricing – ${name}`;
+  }
+  if (payload.context === "request_call") {
+    return `Request a call – ${name}`;
+  }
 
   const purpose = payload.project_purpose || "New bulk quote";
   const totalUnits =
@@ -99,6 +106,12 @@ function formatQuoteEmailBody(payload: QuotePayload): string {
   if (payload.freeEmailLead) {
     lines.push("Free-email lead – indicative pricing was not shown. Please call to discuss.");
     lines.push("");
+  } else if (payload.context === "indicative_pricing") {
+    lines.push("Someone viewed indicative pricing (gate submit).");
+    lines.push("");
+  } else if (payload.context === "request_call") {
+    lines.push("Request a call – contact the customer on the details below.");
+    lines.push("");
   } else {
     lines.push("New bulk quote from Fresh Tees gateway");
     lines.push("");
@@ -121,6 +134,15 @@ function formatQuoteEmailBody(payload: QuotePayload): string {
   }
   lines.push("");
 
+  if (payload.context === "indicative_pricing" && payload.indicativePricingSummary) {
+    lines.push("== Indicative pricing viewed ==");
+    lines.push(payload.indicativePricingSummary);
+    lines.push("");
+    return lines.join("\n");
+  }
+  if (payload.context === "request_call") {
+    return lines.join("\n");
+  }
   if (payload.freeEmailLead) {
     if (payload.context || payload.answers) {
       lines.push("== Wizard context ==");
