@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getProjectConfiguration, getRestrictedColourOptions, type Answers } from "@/lib/flow";
 import {
   calculateProjectSummary,
@@ -48,12 +48,16 @@ export function ProjectConfigurator({
   initialPurpose,
   purposeLabel,
   answers,
+  openContactFormForRequestCall,
+  onRequestCallSubmit,
 }: {
   value: ProjectConfiguratorData;
   onChange: (data: ProjectConfiguratorData) => void;
   initialPurpose?: string;
   purposeLabel?: string;
   answers?: Answers;
+  openContactFormForRequestCall?: boolean;
+  onRequestCallSubmit?: (details: ContactDetails) => void;
 }) {
   const config = getProjectConfiguration();
   const [purpose, setPurpose] = useState(value.purpose || initialPurpose || "");
@@ -78,11 +82,17 @@ export function ProjectConfigurator({
     placements: [],
     finishes: [],
   });
-  const [placementChecks, setPlacementChecks] = useState<Record<string, boolean>>({ front: false, back: false, sleeves: false });
+  const [placementChecks, setPlacementChecks] = useState<Record<string, boolean>>({
+    front: false,
+    back: false,
+    right_sleeve: false,
+    left_sleeve: false,
+  });
   const [placementDetails, setPlacementDetails] = useState<Record<string, { printType: PlacementPrintType; colourCount: number; artworkUrl?: string }>>({
     front: { printType: "screen", colourCount: 1 },
     back: { printType: "screen", colourCount: 1 },
-    sleeves: { printType: "screen", colourCount: 1 },
+    right_sleeve: { printType: "screen", colourCount: 1 },
+    left_sleeve: { printType: "screen", colourCount: 1 },
   });
   const [placementUploading, setPlacementUploading] = useState<string | null>(null);
   const [placementUploadTarget, setPlacementUploadTarget] = useState<string | null>(null);
@@ -92,6 +102,10 @@ export function ProjectConfigurator({
   const [artworkUploadError, setArtworkUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const placementUploadTargetRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (openContactFormForRequestCall && !contactDetails) setShowContactForm(true);
+  }, [openContactFormForRequestCall, contactDetails]);
 
   if (!config) return null;
 
@@ -124,13 +138,11 @@ export function ProjectConfigurator({
 
   const addProduct = () => {
     const placements: PlacementConfig[] = [];
-    const missingArtwork: string[] = [];
-    (["front", "back", "sleeves"] as const).forEach((loc) => {
+    (["front", "back", "right_sleeve", "left_sleeve"] as const).forEach((loc) => {
       if (!placementChecks[loc]) return;
       const d = placementDetails[loc];
       if (!d) return;
       if (d.printType === "screen" && addingProduct.quantity < screenMinQty) return;
-      if (!d.artworkUrl) missingArtwork.push(placementLabel(loc));
       placements.push({
         location: loc,
         printType: d.printType,
@@ -140,10 +152,6 @@ export function ProjectConfigurator({
     });
     if (placements.length === 0) {
       setArtworkUploadError("Must select at least one placement.");
-      return;
-    }
-    if (missingArtwork.length > 0) {
-      setArtworkUploadError(`Please upload artwork for each selected placement: ${missingArtwork.join(", ")}`);
       return;
     }
     setArtworkUploadError(null);
@@ -168,8 +176,13 @@ export function ProjectConfigurator({
       placements: [],
       finishes: [],
     });
-    setPlacementChecks({ front: false, back: false, sleeves: false });
-    setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
+    setPlacementChecks({ front: false, back: false, right_sleeve: false, left_sleeve: false });
+    setPlacementDetails({
+      front: { printType: "screen", colourCount: 1 },
+      back: { printType: "screen", colourCount: 1 },
+      right_sleeve: { printType: "screen", colourCount: 1 },
+      left_sleeve: { printType: "screen", colourCount: 1 },
+    });
     setArtworkUploadError(null);
     onChange({ purpose, artworkStatus: value.artworkStatus, products: nextProducts, dueDate, rushFlag, summary: null, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
   };
@@ -191,7 +204,7 @@ export function ProjectConfigurator({
     const p = products[index];
     setEditingProductIndex(index);
     setAddingProduct({ ...p });
-    const checks: Record<string, boolean> = { front: false, back: false, sleeves: false };
+    const checks: Record<string, boolean> = { front: false, back: false, right_sleeve: false, left_sleeve: false };
     p.placements.forEach((pl) => {
       if (pl.location in checks) checks[pl.location] = true;
     });
@@ -199,7 +212,8 @@ export function ProjectConfigurator({
     const details: Record<string, { printType: PlacementPrintType; colourCount: number; artworkUrl?: string }> = {
       front: { printType: "screen", colourCount: 1 },
       back: { printType: "screen", colourCount: 1 },
-      sleeves: { printType: "screen", colourCount: 1 },
+      right_sleeve: { printType: "screen", colourCount: 1 },
+      left_sleeve: { printType: "screen", colourCount: 1 },
     };
     p.placements.forEach((pl) => {
       details[pl.location] = { printType: pl.printType, colourCount: pl.colourCount ?? 1, ...(pl.artworkUrl && { artworkUrl: pl.artworkUrl }) };
@@ -219,8 +233,13 @@ export function ProjectConfigurator({
       placements: [],
       finishes: [],
     });
-    setPlacementChecks({ front: false, back: false, sleeves: false });
-    setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
+    setPlacementChecks({ front: false, back: false, right_sleeve: false, left_sleeve: false });
+    setPlacementDetails({
+      front: { printType: "screen", colourCount: 1 },
+      back: { printType: "screen", colourCount: 1 },
+      right_sleeve: { printType: "screen", colourCount: 1 },
+      left_sleeve: { printType: "screen", colourCount: 1 },
+    });
     setArtworkUploadError(null);
   };
 
@@ -247,12 +266,21 @@ export function ProjectConfigurator({
     if (!fullName?.trim()) errors.fullName = "Full name is required.";
     if (!email?.trim()) errors.email = "Email is required.";
     if (!phone?.trim()) errors.phone = "Phone number is required.";
+    const isRequestCallMode = Boolean(openContactFormForRequestCall && onRequestCallSubmit);
     if (Object.keys(errors).length > 0) {
       setContactFieldErrors(errors);
       return;
     }
     setContactFieldErrors({});
     const details: ContactDetails = { fullName: fullName.trim(), email: email.trim(), phone: phone.trim(), ...(businessName?.trim() && { businessName: businessName.trim() }) };
+    if (isRequestCallMode) {
+      setContactDetails(details);
+      onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary, contactDetails: details, contactSubmittedAt: contactSubmittedAt ?? undefined });
+      onRequestCallSubmit(details);
+      setShowContactForm(false);
+      setContactForm({ fullName: "", email: "", phone: "", businessName: "" });
+      return;
+    }
     const result = runCalculation();
     if (result) syncContactAndSummary(details, result);
   };
@@ -282,16 +310,6 @@ export function ProjectConfigurator({
     if (!contactForSubmit) {
       setSubmitQuoteError("Contact details are required. Please enter your details above.");
       setShowContactForm(true);
-      return;
-    }
-    const missingArtwork: string[] = [];
-    products.forEach((p, i) => {
-      p.placements.forEach((pl) => {
-        if (!pl.artworkUrl) missingArtwork.push(`Product ${i + 1} – ${placementLabel(pl.location)}`);
-      });
-    });
-    if (missingArtwork.length > 0) {
-      setSubmitQuoteError(`Please upload artwork for each placement: ${missingArtwork.join("; ")}`);
       return;
     }
     const computedSummary = calculateProjectSummary(products);
@@ -722,7 +740,9 @@ export function ProjectConfigurator({
 
       {products.length > 0 && showContactForm && !contactDetails && (
         <form onSubmit={handleContactSubmit} className="mb-4 p-4 rounded-lg border border-off-black/20 bg-white space-y-3">
-          <p className="font-body text-sm font-medium text-off-black">Contact details (required for indicative pricing)</p>
+          <p className="font-body text-sm font-medium text-off-black">
+            {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required for indicative pricing)"}
+          </p>
           <div>
             <label className="block font-body text-xs text-off-black/70 mb-0.5">Full name *</label>
             <input
@@ -768,7 +788,7 @@ export function ProjectConfigurator({
           {contactFormError && <p className="font-body text-sm text-red-600">{contactFormError}</p>}
           <div className="flex gap-2">
             <button type="submit" className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
-              Submit & show pricing
+              {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & show pricing"}
             </button>
             <button type="button" onClick={() => { setShowContactForm(false); setContactFormError(null); setContactFieldErrors({}); }} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded">
               Cancel

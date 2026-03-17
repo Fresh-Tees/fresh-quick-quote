@@ -371,7 +371,8 @@
     "placementOptions": [
       { "value": "front", "label": "Front" },
       { "value": "back", "label": "Back" },
-      { "value": "sleeves", "label": "Sleeves" }
+      { "value": "right_sleeve", "label": "Right Sleeve" },
+      { "value": "left_sleeve", "label": "Left Sleeve" }
     ],
     "placementPrintTypes": [
       { "value": "screen", "label": "Screen Print (min 50)" },
