@@ -273,7 +273,6 @@ export function ProjectConfigurator({
     const errors: { fullName?: string; email?: string; phone?: string } = {};
     if (!fullName?.trim()) errors.fullName = "Full name is required.";
     if (!email?.trim()) errors.email = "Email is required.";
-    if (isRequestCallMode && !phone?.trim()) errors.phone = "Phone number is required.";
     if (Object.keys(errors).length > 0) {
       setContactFieldErrors(errors);
       return;
@@ -762,14 +761,13 @@ export function ProjectConfigurator({
           </div>
           <div>
             <label className="block font-body text-xs text-off-black/70 mb-0.5">
-              {openContactFormForRequestCall && onRequestCallSubmit ? "Phone number *" : "Phone number (optional)"}
+              Phone number (optional)
             </label>
             <input
               type="tel"
               value={contactForm.phone}
               onChange={(e) => { setContactForm((f) => ({ ...f, phone: e.target.value })); setContactFieldErrors((err) => ({ ...err, phone: undefined })); }}
               className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-              required={Boolean(openContactFormForRequestCall && onRequestCallSubmit)}
             />
             {contactFieldErrors.phone && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.phone}</p>}
           </div>
