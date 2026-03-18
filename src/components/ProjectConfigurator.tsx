@@ -102,10 +102,17 @@ export function ProjectConfigurator({
   const [artworkUploadError, setArtworkUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const placementUploadTargetRef = useRef<string | null>(null);
+  const contactFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (openContactFormForRequestCall && !contactDetails) setShowContactForm(true);
   }, [openContactFormForRequestCall, contactDetails]);
+
+  useEffect(() => {
+    if (showContactForm && openContactFormForRequestCall && contactFormRef.current) {
+      contactFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [showContactForm, openContactFormForRequestCall]);
 
   if (!config) return null;
 
@@ -262,17 +269,17 @@ export function ProjectConfigurator({
     e.preventDefault();
     setContactFormError(null);
     const { fullName, email, phone, businessName } = contactForm;
+    const isRequestCallMode = Boolean(openContactFormForRequestCall && onRequestCallSubmit);
     const errors: { fullName?: string; email?: string; phone?: string } = {};
     if (!fullName?.trim()) errors.fullName = "Full name is required.";
     if (!email?.trim()) errors.email = "Email is required.";
-    if (!phone?.trim()) errors.phone = "Phone number is required.";
-    const isRequestCallMode = Boolean(openContactFormForRequestCall && onRequestCallSubmit);
+    if (isRequestCallMode && !phone?.trim()) errors.phone = "Phone number is required.";
     if (Object.keys(errors).length > 0) {
       setContactFieldErrors(errors);
       return;
     }
     setContactFieldErrors({});
-    const details: ContactDetails = { fullName: fullName.trim(), email: email.trim(), phone: phone.trim(), ...(businessName?.trim() && { businessName: businessName.trim() }) };
+    const details: ContactDetails = { fullName: fullName.trim(), email: email.trim(), phone: (phone ?? "").trim(), ...(businessName?.trim() && { businessName: businessName.trim() }) };
     if (isRequestCallMode) {
       setContactDetails(details);
       onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary, contactDetails: details, contactSubmittedAt: contactSubmittedAt ?? undefined });
@@ -726,22 +733,10 @@ export function ProjectConfigurator({
         </div>
       )}
 
-      {products.length > 0 && !contactDetails && !quoteSubmitted && (
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => setShowContactForm(true)}
-            className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm font-medium rounded hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-          >
-            Calculate indicative pricing
-          </button>
-        </div>
-      )}
-
       {products.length > 0 && showContactForm && !contactDetails && (
-        <form onSubmit={handleContactSubmit} className="mb-4 p-4 rounded-lg border border-off-black/20 bg-white space-y-3">
+        <form ref={contactFormRef} onSubmit={handleContactSubmit} className="mb-4 p-4 rounded-lg border border-off-black/20 bg-white space-y-3">
           <p className="font-body text-sm font-medium text-off-black">
-            {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required for indicative pricing)"}
+            {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required to submit and reveal estimate)"}
           </p>
           <div>
             <label className="block font-body text-xs text-off-black/70 mb-0.5">Full name *</label>
@@ -766,13 +761,15 @@ export function ProjectConfigurator({
             {contactFieldErrors.email && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.email}</p>}
           </div>
           <div>
-            <label className="block font-body text-xs text-off-black/70 mb-0.5">Phone number *</label>
+            <label className="block font-body text-xs text-off-black/70 mb-0.5">
+              {openContactFormForRequestCall && onRequestCallSubmit ? "Phone number *" : "Phone number (optional)"}
+            </label>
             <input
               type="tel"
               value={contactForm.phone}
               onChange={(e) => { setContactForm((f) => ({ ...f, phone: e.target.value })); setContactFieldErrors((err) => ({ ...err, phone: undefined })); }}
               className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-              required
+              required={Boolean(openContactFormForRequestCall && onRequestCallSubmit)}
             />
             {contactFieldErrors.phone && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.phone}</p>}
           </div>
@@ -788,7 +785,7 @@ export function ProjectConfigurator({
           {contactFormError && <p className="font-body text-sm text-red-600">{contactFormError}</p>}
           <div className="flex gap-2">
             <button type="submit" className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
-              {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & show pricing"}
+              {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & reveal estimate"}
             </button>
             <button type="button" onClick={() => { setShowContactForm(false); setContactFormError(null); setContactFieldErrors({}); }} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded">
               Cancel
