@@ -276,7 +276,7 @@ export function ProjectConfigurator({
     if (isRequestCallMode) {
       setContactDetails(details);
       onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary, contactDetails: details, contactSubmittedAt: contactSubmittedAt ?? undefined });
-      onRequestCallSubmit(details);
+      onRequestCallSubmit?.(details);
       setShowContactForm(false);
       setContactForm({ fullName: "", email: "", phone: "", businessName: "" });
       return;
