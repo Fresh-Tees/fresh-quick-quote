@@ -19,6 +19,7 @@ import { getGarmentCostPerUnit } from "@/lib/pricing";
 import { ProjectConfigurator, type ProjectConfiguratorData } from "./ProjectConfigurator";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { getGatewaySessionId, track } from "@/lib/ga4";
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -26,8 +27,7 @@ function formatCurrency(n: number): string {
 
 export function QualifiedOutcome({ answers }: { answers: Answers }) {
   const [showConfigurator, setShowConfigurator] = useState(false);
-  const [showRequestCallMessage, setShowRequestCallMessage] = useState(false);
-  const [showContactFormForRequestCall, setShowContactFormForRequestCall] = useState(false);
+  const sessionId = getGatewaySessionId();
   const flowConfig = getFlowConfig();
   const questions = (flowConfig as {
     questions?: { id: string; type?: string; options?: { value: string; label: string }[]; rightColumn?: { options: { value: string; label: string }[] } }[];
@@ -191,27 +191,6 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
           initialPurpose={initialPurpose}
           purposeLabel={purposeLabelFromWizard ?? undefined}
           answers={answers}
-          openContactFormForRequestCall={showContactFormForRequestCall}
-          onRequestCallSubmit={(details) => {
-            setProjectData((prev) => ({ ...prev, contactDetails: details }));
-            setShowContactFormForRequestCall(false);
-            setShowRequestCallMessage(true);
-            fetch("/api/quote", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: details.fullName,
-                email: details.email,
-                phone: details.phone ?? "",
-                message: "",
-                marketingConsent: false,
-                context: "request_call",
-                contact_details: details,
-                timestamp: new Date().toISOString(),
-                submittedAt: new Date().toISOString(),
-              }),
-            }).catch(() => {});
-          }}
         />
       )}
 
@@ -281,59 +260,16 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
       )}
 
       <div className="space-y-4">
-        {showRequestCallMessage ? (
-          <div className="space-y-3">
-            <p className="font-body text-off-black p-4 rounded-lg border border-off-black/20 bg-off-white/30">
-              We will contact you on the details you provided.
-            </p>
-            <p className="font-body text-sm text-off-black/80">
-              Grab a copy of our onboarding guide to make sure you&apos;re ready to go.{" "}
-              <a
-                href="/api/download-onboarding"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
-              >
-                Download
-              </a>
-            </p>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={async () => {
-              const contact = projectData.contactDetails ?? null;
-              if (!contact) {
-                setShowConfigurator(true);
-                setShowContactFormForRequestCall(true);
-                return;
-              }
-              setShowRequestCallMessage(true);
-              try {
-                await fetch("/api/quote", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    name: contact.fullName,
-                    email: contact.email,
-                    phone: contact.phone ?? "",
-                    message: "",
-                    marketingConsent: false,
-                    context: "request_call",
-                    contact_details: contact,
-                    timestamp: new Date().toISOString(),
-                    submittedAt: new Date().toISOString(),
-                  }),
-                });
-              } catch {
-                // Fire-and-forget
-              }
-            }}
-            className="flex items-center justify-center min-h-[44px] w-full px-8 py-4 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-          >
-            Request a call
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            track("request_call_clicked", { session_id: sessionId });
+            window.open("https://calendly.com/freshtees/new-meeting", "_blank", "noopener,noreferrer");
+          }}
+          className="flex items-center justify-center min-h-[44px] w-full px-8 py-4 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+        >
+          Request a call
+        </button>
       </div>
 
       <div className="pt-4 border-t border-off-black/10 mt-6 flex justify-center">

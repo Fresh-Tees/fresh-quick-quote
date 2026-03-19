@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { getProjectConfiguration, getRestrictedColourOptions, type Answers } from "@/lib/flow";
+import { getGatewaySessionId, track } from "@/lib/ga4";
 import {
   calculateProjectSummary,
   getVolumeIncentiveMessage,
@@ -103,6 +104,7 @@ export function ProjectConfigurator({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const placementUploadTargetRef = useRef<string | null>(null);
   const contactFormRef = useRef<HTMLFormElement>(null);
+  const sessionId = getGatewaySessionId();
 
   useEffect(() => {
     if (openContactFormForRequestCall && !contactDetails) setShowContactForm(true);
@@ -288,7 +290,58 @@ export function ProjectConfigurator({
       return;
     }
     const result = runCalculation();
-    if (result) syncContactAndSummary(details, result);
+    if (result) {
+      syncContactAndSummary(details, result);
+
+      track("indicative_pricing_revealed", {
+        session_id: sessionId,
+        total_units: result.totalUnits,
+        estimated_total: result.estimatedProjectTotal,
+        product_count: result.productCalculations.length,
+      });
+
+      const payload = {
+        name: details.fullName,
+        email: details.email,
+        phone: details.phone ?? "",
+        message: "",
+        marketingConsent: false,
+        context: "indicative_pricing",
+        answers: answers ?? {},
+        project_purpose: purpose,
+        artwork_status: value.artworkStatus,
+        contact_details: details,
+        project_products: products.map((p, i) => ({
+          product_type: p.productType,
+          garment_model: p.garmentModel,
+          garment_colour: p.garmentColour,
+          quantity: p.quantity,
+          placements: p.placements.map((pl) => ({
+            location: pl.location,
+            print_type: pl.printType,
+            ...(pl.colourCount != null && { colour_count: pl.colourCount }),
+            ...(pl.artworkUrl && { artwork_url: pl.artworkUrl }),
+          })),
+          finishes: p.finishes,
+          due_date: dueDate || undefined,
+          rush_flag: rushFlag,
+          indicative_total: result.productCalculations[i]?.productTotal,
+        })),
+        indicative_pricing_shown: {
+          estimatedProjectTotal: result.estimatedProjectTotal,
+          totalUnits: result.totalUnits,
+          productCalculations: result.productCalculations,
+        },
+        timestamp: new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
+      };
+
+      fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
   };
 
   const businessDaysFromToday = (dateStr: string): number => {
@@ -369,6 +422,7 @@ export function ProjectConfigurator({
       if (!contactDetails) setContactDetails(contactForSubmit);
       setContactSubmittedAt(new Date().toISOString());
       setQuoteSubmitted(true);
+      track("quote_submitted", { session_id: sessionId, context: "qualified" });
       onChange({
         purpose,
         artworkStatus: value.artworkStatus,

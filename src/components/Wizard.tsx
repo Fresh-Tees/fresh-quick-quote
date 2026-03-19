@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getFlowConfig, isSmallOrder, isBulkOrder } from "@/lib/flow";
 import type { Answers } from "@/lib/flow";
+import { getGatewaySessionId, track } from "@/lib/ga4";
 import { QuestionStep } from "./QuestionStep";
 import { SmallOrderOutcome } from "./SmallOrderOutcome";
 import { EducationOutcome } from "./EducationOutcome";
@@ -29,6 +30,17 @@ export function Wizard() {
   const questions = config.questions;
   const currentQuestion = questions[step];
   const progress = ((step + 1) / questions.length) * 100;
+  const sessionId = getGatewaySessionId();
+
+  useEffect(() => {
+    if (screen !== "wizard") return;
+    if (!currentQuestion) return;
+    track("wizard_step_viewed", {
+      session_id: sessionId,
+      question_id: currentQuestion.id,
+      step_index: step,
+    });
+  }, [screen, step, currentQuestion?.id, sessionId]);
 
   const setAnswer = (id: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -38,8 +50,10 @@ export function Wizard() {
     setOutcomeAnswers(finalAnswers);
     setAnswers(finalAnswers);
     if (isBulkOrder(finalAnswers)) {
+      track("wizard_completed", { session_id: sessionId, outcome: "qualified" });
       setScreen("qualified");
     } else {
+      track("wizard_completed", { session_id: sessionId, outcome: "redirected" });
       redirectToStudioFresh();
     }
   };

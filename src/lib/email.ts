@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import path from "path";
+import { readFile } from "fs/promises";
 
 type QuotePayload = {
   name: string;
@@ -248,6 +250,69 @@ function formatQuoteEmailBody(payload: QuotePayload): string {
   return lines.join("\n");
 }
 
+function formatCustomerEmailSubject(payload: QuotePayload): string {
+  if (payload.context === "indicative_pricing") {
+    return "Your indicative estimate + onboarding checklist";
+  }
+  return "We’ve received your request";
+}
+
+function formatCustomerEmailBody(payload: QuotePayload): string {
+  const lines: string[] = [];
+  const contact = payload.contact_details;
+  const name = contact?.fullName ?? payload.name ?? "";
+
+  if (payload.context === "indicative_pricing") {
+    lines.push(`Hi${name ? ` ${name}` : ""},`);
+    lines.push("");
+    lines.push("Thanks — we’ve captured your details and generated an indicative estimate based on what you entered.");
+    lines.push("We’ve attached our onboarding checklist PDF to help you get ready for quoting/production.");
+    lines.push("");
+  } else {
+    lines.push(`Hi${name ? ` ${name}` : ""},`);
+    lines.push("");
+    lines.push("Thanks — we’ve received your request. Our team will review it and be in touch within 24 hours.");
+    lines.push("We’ve attached our onboarding checklist PDF to help you get ready.");
+    lines.push("");
+  }
+
+  if (payload.project_purpose) {
+    lines.push(`Project purpose: ${payload.project_purpose}`);
+  }
+  if (payload.indicative_pricing_shown) {
+    lines.push(
+      `Indicative total: ${payload.indicative_pricing_shown.estimatedProjectTotal} (for ${payload.indicative_pricing_shown.totalUnits} units)`
+    );
+  }
+  if (payload.project_products?.length) {
+    lines.push("");
+    lines.push("Summary:");
+    payload.project_products.forEach((p, i) => {
+      lines.push(`- Product ${i + 1}: ${p.quantity} × ${p.garment_model} (${p.product_type}), ${p.garment_colour}`);
+      if (p.placements?.length) {
+        const placements = p.placements
+          .map((pl) =>
+            pl.colour_count != null
+              ? `${pl.location} (${pl.print_type}, ${pl.colour_count} colours)`
+              : `${pl.location} (${pl.print_type})`
+          )
+          .join("; ");
+        lines.push(`  Placements: ${placements}`);
+      }
+      if (p.finishes?.length) {
+        lines.push(`  Finishes: ${p.finishes.join(", ")}`);
+      }
+      if (p.due_date) {
+        lines.push(`  Due date: ${p.due_date}`);
+      }
+    });
+  }
+
+  lines.push("");
+  lines.push("Fresh Tees");
+  return lines.join("\n");
+}
+
 async function buildArtworkAttachments(
   project_products: QuotePayload["project_products"]
 ): Promise<{ filename: string; content: Buffer }[]> {
@@ -278,6 +343,17 @@ async function buildArtworkAttachments(
   return attachments;
 }
 
+async function buildOnboardingPdfAttachment(): Promise<{ filename: string; content: Buffer } | null> {
+  try {
+    const filePath = path.join(process.cwd(), "public", "FRESH-Onboarding.pdf");
+    const content = await readFile(filePath);
+    return { filename: "Fresh-Tees-Onboarding.pdf", content };
+  } catch (e) {
+    console.warn("[Quote email] Onboarding PDF attachment failed:", e);
+    return null;
+  }
+}
+
 export async function sendQuoteEmail(payload: QuotePayload) {
   const { transportOptions, from, notify } = ensureEmailConfig();
 
@@ -296,5 +372,26 @@ export async function sendQuoteEmail(payload: QuotePayload) {
   });
 
   console.log("[Quote email] Sent to", notify, attachments.length > 0 ? `(${attachments.length} artwork attachment(s))` : "");
+
+  const customerTo = payload.contact_details?.email ?? payload.email;
+  const shouldSendCustomer =
+    payload.context === "indicative_pricing" || payload.context === "qualified" || !payload.context;
+  if (shouldSendCustomer && customerTo) {
+    const customerSubject = formatCustomerEmailSubject(payload);
+    const customerText = formatCustomerEmailBody(payload);
+    const onboarding = await buildOnboardingPdfAttachment();
+    const customerAttachments = onboarding ? [onboarding] : [];
+
+    await transporter.sendMail({
+      from,
+      to: customerTo,
+      replyTo: notify,
+      subject: customerSubject,
+      text: customerText,
+      ...(customerAttachments.length > 0 && { attachments: customerAttachments }),
+    });
+
+    console.log("[Customer email] Sent to", customerTo, customerAttachments.length > 0 ? "(onboarding PDF attached)" : "");
+  }
 }
 
