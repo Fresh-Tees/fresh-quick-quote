@@ -20,7 +20,7 @@ export function EducationOutcome({ answers }: { answers: Answers }) {
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-12 space-y-8">
+    <div className="max-w-xl md:max-w-3xl xl:max-w-4xl mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-8">
       <section>
         <h1 className="font-display font-bold text-2xl md:text-3xl text-off-black mb-2">
           {content?.title ?? "Almost there"}

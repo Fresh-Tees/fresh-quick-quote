@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getFlowConfig, isSmallOrder, isBulkOrder } from "@/lib/flow";
 import type { Answers } from "@/lib/flow";
 import { getGatewaySessionId, track } from "@/lib/ga4";
@@ -31,6 +31,7 @@ export function Wizard() {
   const currentQuestion = questions[step];
   const progress = ((step + 1) / questions.length) * 100;
   const sessionId = getGatewaySessionId();
+  const wizardScrollAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (screen !== "wizard") return;
@@ -41,6 +42,11 @@ export function Wizard() {
       step_index: step,
     });
   }, [screen, step, currentQuestion?.id, sessionId]);
+
+  useEffect(() => {
+    if (screen !== "wizard") return;
+    wizardScrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [step, screen]);
 
   const setAnswer = (id: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -115,39 +121,43 @@ export function Wizard() {
   }
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-12">
-      <div className="mb-10 flex flex-col gap-2">
-        <p className="text-sm font-body font-medium text-off-black/80">
-          Step {step + 1} of {questions.length}
-        </p>
-        <div className="h-1.5 bg-off-white rounded-full overflow-hidden">
-          <div
-            className="h-full bg-accent transition-all duration-300"
-            style={{ width: `${progress}%` }}
+    <div ref={wizardScrollAnchorRef} className="w-full max-w-none lg:max-w-5xl xl:max-w-6xl mx-auto">
+      <div className="md:grid md:grid-cols-[minmax(11rem,13rem)_minmax(0,1fr)] md:gap-8 lg:gap-12 md:items-start">
+        <div className="mb-6 md:mb-0 md:sticky md:top-6 flex flex-col gap-2">
+          <p className="text-sm font-body font-medium text-off-black/80">
+            Step {step + 1} of {questions.length}
+          </p>
+          <div className="h-1.5 bg-off-white rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <QuestionStep
+            question={currentQuestion!}
+            value={answers[currentQuestion?.id ?? ""]}
+            onAnswer={
+              currentQuestion?.type === "gate"
+                ? (value) => {
+                    setAnswer("intent", value);
+                    if (value === "personal") {
+                      redirectToStudioFresh();
+                    } else {
+                      goNext();
+                    }
+                  }
+                : (value) => setAnswer(currentQuestion!.id, value)
+            }
+            onNext={goNext}
+            onBack={step > 0 ? goBack : undefined}
+            leftValue={currentQuestion?.type === "project_tell" ? answers.merch_tier : undefined}
+            onLeftAnswer={currentQuestion?.type === "project_tell" ? (v) => setAnswer("merch_tier", v) : undefined}
           />
         </div>
       </div>
-
-      <QuestionStep
-        question={currentQuestion!}
-        value={answers[currentQuestion?.id ?? ""]}
-        onAnswer={
-          currentQuestion?.type === "gate"
-            ? (value) => {
-                setAnswer("intent", value);
-                if (value === "personal") {
-                  redirectToStudioFresh();
-                } else {
-                  goNext();
-                }
-              }
-            : (value) => setAnswer(currentQuestion!.id, value)
-        }
-        onNext={goNext}
-        onBack={step > 0 ? goBack : undefined}
-        leftValue={currentQuestion?.type === "project_tell" ? answers.merch_tier : undefined}
-        onLeftAnswer={currentQuestion?.type === "project_tell" ? (v) => setAnswer("merch_tier", v) : undefined}
-      />
     </div>
   );
 }

@@ -38,8 +38,7 @@ export function QuestionStep({
   const isGate = question.type === "gate";
   const isMulti = question.type === "multi";
   const selected = isMulti ? selectedSet(value) : new Set(value ? [value] : []);
-  const canNextProjectTell = isProjectTell && !!leftValue && !!value;
-  const canNext = isProjectTell ? canNextProjectTell : isMulti ? selected.size >= 1 : value !== undefined && value !== "";
+  const canNextMulti = isMulti && selected.size >= 1;
 
   const handleMultiToggle = (optValue: string) => {
     const next = new Set(selected);
@@ -76,8 +75,11 @@ export function QuestionStep({
           ))}
         </div>
       ) : isProjectTell && question.leftColumn && question.rightColumn ? (
-        <div className="flex flex-wrap items-stretch gap-4 md:gap-6">
-          <div className="flex flex-col gap-3 flex-1 min-w-[140px]">
+        <div className="flex flex-col md:flex-row md:flex-wrap md:items-stretch gap-4 md:gap-6">
+          <div className="flex flex-col gap-3 flex-1 min-w-0 md:min-w-[140px] order-1">
+            <p className="md:hidden font-body text-xs font-medium text-off-black/60 uppercase tracking-wide">
+              Merch level
+            </p>
             {question.leftColumn.options.map((opt) => (
               <div key={opt.value} className="relative group">
                 {opt.tooltip && (
@@ -90,7 +92,12 @@ export function QuestionStep({
                 )}
                 <button
                   type="button"
-                  onClick={() => onLeftAnswer?.(opt.value)}
+                  onClick={() => {
+                    onLeftAnswer?.(opt.value);
+                    if (value) {
+                      setTimeout(() => onNext(), 250);
+                    }
+                  }}
                   className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 font-body text-base focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
                     leftValue === opt.value
                       ? "border-accent bg-accent/5 text-off-black"
@@ -102,15 +109,23 @@ export function QuestionStep({
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-center shrink-0 px-2 font-body text-off-black/80 text-base">
-            For a
+          <div className="order-2 w-full flex justify-center py-3 my-1 border-y border-off-black/10 md:border-y-0 md:w-auto md:shrink-0 md:flex md:items-center md:justify-center md:px-3 md:py-0">
+            <span className="font-body text-off-black/80 text-base font-medium">For a</span>
           </div>
-          <div className="flex flex-col gap-3 flex-1 min-w-[140px]">
+          <div className="flex flex-col gap-3 flex-1 min-w-0 md:min-w-[140px] order-3">
+            <p className="md:hidden font-body text-xs font-medium text-off-black/60 uppercase tracking-wide">
+              Project type
+            </p>
             {question.rightColumn.options.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => onAnswer(opt.value)}
+                onClick={() => {
+                  onAnswer(opt.value);
+                  if (leftValue) {
+                    setTimeout(() => onNext(opt.value), 250);
+                  }
+                }}
                 className={`w-full text-left px-5 min-h-[44px] py-3.5 rounded-lg border-2 font-body text-base focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
                   value === opt.value
                     ? "border-accent bg-accent/5 text-off-black"
@@ -149,7 +164,7 @@ export function QuestionStep({
                 type="button"
                 onClick={() => {
                   onAnswer(opt.value);
-                  if (question.type === "single") {
+                  if (question.type === "single" || question.type === "quantity") {
                     setTimeout(() => onNext(opt.value), 200);
                   }
                 }}
@@ -190,11 +205,11 @@ export function QuestionStep({
             Back
           </button>
         )}
-        {(question.type === "quantity" || question.type === "multi" || question.type === "project_tell") && (
+        {question.type === "multi" && (
           <button
             type="button"
             onClick={() => onNext()}
-            disabled={!canNext}
+            disabled={!canNextMulti}
             className="min-h-[44px] px-6 py-3 bg-off-black text-white font-body font-medium rounded-lg hover:bg-off-black/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
