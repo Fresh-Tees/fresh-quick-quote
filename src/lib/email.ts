@@ -69,6 +69,19 @@ function ensureEmailConfig() {
   };
 }
 
+/** Bare email from `SMTP_FROM` (`Name <a@b>` or `a@b`). */
+function extractEmailFromFromHeader(smtpFrom: string): string {
+  const t = smtpFrom.trim();
+  const m = t.match(/<([^>]+)>/);
+  if (m) return m[1].trim();
+  return t;
+}
+
+/** Customer-facing sends: same address as SMTP_FROM, display name "FRESH." */
+function customerFromHeader(smtpFrom: string): string {
+  return `FRESH. <${extractEmailFromFromHeader(smtpFrom)}>`;
+}
+
 function formatQuoteEmailSubject(payload: QuotePayload): string {
   const name = payload.name || payload.contact_details?.fullName || "Unknown contact";
 
@@ -466,7 +479,7 @@ export async function sendQuoteEmail(payload: QuotePayload) {
     const customerHtml = formatCustomerEmailHtml(payload);
 
     await transporter.sendMail({
-      from,
+      from: customerFromHeader(from),
       to: customerTo,
       replyTo: notify,
       subject: customerSubject,
