@@ -1,6 +1,4 @@
 import nodemailer from "nodemailer";
-import path from "path";
-import { readFile } from "fs/promises";
 
 type QuotePayload = {
   name: string;
@@ -250,45 +248,80 @@ function formatQuoteEmailBody(payload: QuotePayload): string {
   return lines.join("\n");
 }
 
-function formatCustomerEmailSubject(payload: QuotePayload): string {
-  if (payload.context === "indicative_pricing") {
-    return "Your indicative estimate + onboarding checklist";
+/** Public site origin for absolute links in customer emails (e.g. onboarding guide). */
+function getSiteBaseUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  if (explicit) return explicit;
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) {
+    const host = vercel.startsWith("http") ? vercel : `https://${vercel}`;
+    return host.replace(/\/$/, "");
   }
-  return "We’ve received your request";
+  return "";
 }
 
-function formatCustomerEmailBody(payload: QuotePayload): string {
-  const lines: string[] = [];
-  const contact = payload.contact_details;
-  const name = contact?.fullName ?? payload.name ?? "";
-
-  if (payload.context === "indicative_pricing") {
-    lines.push(`Hi${name ? ` ${name}` : ""},`);
-    lines.push("");
-    lines.push("Thanks — we’ve captured your details and generated an indicative estimate based on what you entered.");
-    lines.push("We’ve attached our onboarding checklist PDF to help you get ready for quoting/production.");
-    lines.push("");
-  } else {
-    lines.push(`Hi${name ? ` ${name}` : ""},`);
-    lines.push("");
-    lines.push("Thanks — we’ve received your request. Our team will review it and be in touch within 24 hours.");
-    lines.push("We’ve attached our onboarding checklist PDF to help you get ready.");
-    lines.push("");
+function getOnboardingGuideUrl(): string {
+  const base = getSiteBaseUrl();
+  if (!base) {
+    console.warn(
+      "[Customer email] NEXT_PUBLIC_SITE_URL (or VERCEL_URL) is not set; onboarding link may be relative only."
+    );
   }
+  return base ? `${base}/api/download-onboarding` : "/api/download-onboarding";
+}
 
+function formatAud(n: number): string {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function firstNameFromFullName(fullName: string): string {
+  const t = fullName.trim();
+  if (!t) return "";
+  return t.split(/\s+/)[0] ?? "";
+}
+
+/** Lines of project/quote detail for customer-facing emails. */
+function buildCustomerDetailsLines(payload: QuotePayload): string[] {
+  const lines: string[] = [];
   if (payload.project_purpose) {
     lines.push(`Project purpose: ${payload.project_purpose}`);
   }
+  if (payload.artwork_status) {
+    lines.push(`Artwork: ${payload.artwork_status}`);
+  }
+  const firstProduct = payload.project_products?.[0];
+  if (firstProduct?.due_date) {
+    lines.push(`Due date: ${firstProduct.due_date}`);
+  }
+  const anyRush = payload.project_products?.some((p) => p.rush_flag);
+  if (anyRush) {
+    lines.push("Rush: Yes");
+  }
   if (payload.indicative_pricing_shown) {
     lines.push(
-      `Indicative total: ${payload.indicative_pricing_shown.estimatedProjectTotal} (for ${payload.indicative_pricing_shown.totalUnits} units)`
+      `Indicative total: ${formatAud(payload.indicative_pricing_shown.estimatedProjectTotal)} (for ${payload.indicative_pricing_shown.totalUnits} units)`
     );
   }
   if (payload.project_products?.length) {
-    lines.push("");
-    lines.push("Summary:");
+    if (lines.length > 0) lines.push("");
+    lines.push("Products:");
     payload.project_products.forEach((p, i) => {
-      lines.push(`- Product ${i + 1}: ${p.quantity} × ${p.garment_model} (${p.product_type}), ${p.garment_colour}`);
+      lines.push(
+        `- Product ${i + 1}: ${p.quantity} × ${p.garment_model} (${p.product_type}), ${p.garment_colour}`
+      );
       if (p.placements?.length) {
         const placements = p.placements
           .map((pl) =>
@@ -307,10 +340,72 @@ function formatCustomerEmailBody(payload: QuotePayload): string {
       }
     });
   }
+  if (lines.length === 0) {
+    lines.push("—");
+  }
+  return lines;
+}
 
+function formatCustomerEmailSubject(_payload: QuotePayload): string {
+  return "FRESH. Your estimate and next steps.";
+}
+
+function formatCustomerEmailBody(payload: QuotePayload): string {
+  const contact = payload.contact_details;
+  const fullName = contact?.fullName ?? payload.name ?? "";
+  const first = firstNameFromFullName(fullName);
+  const greeting = first ? `Yo ${first},` : "Yo,";
+  const detailsLines = buildCustomerDetailsLines(payload);
+  const detailsBlock = detailsLines.join("\n");
+  const onboardingUrl = getOnboardingGuideUrl();
+
+  const lines: string[] = [];
+  lines.push(greeting);
   lines.push("");
-  lines.push("Fresh Tees");
+  lines.push("Thanks for requesting a quote.");
+  lines.push("");
+  lines.push(
+    "Next we'll reach out to confirm your enquiry before providing a quote. Details below:"
+  );
+  lines.push("");
+  lines.push(detailsBlock);
+  lines.push("");
+  lines.push(
+    "To make sure we're all on the same page, if you haven't already, please download a copy of our Onboarding Guide:"
+  );
+  lines.push(onboardingUrl);
+  lines.push("");
+  lines.push(
+    "This tool is brand new and under development. We'd love to hear any feedback you have and in fact are offering a 5% discount on prints for this project, should you be so kind. Simply reply to this email with your feedback."
+  );
+  lines.push("");
+  lines.push("Shot!");
+  lines.push("The FRESH Crew.");
   return lines.join("\n");
+}
+
+function formatCustomerEmailHtml(payload: QuotePayload): string {
+  const contact = payload.contact_details;
+  const fullName = contact?.fullName ?? payload.name ?? "";
+  const first = firstNameFromFullName(fullName);
+  const greeting = first ? `Yo ${escapeHtml(first)},` : "Yo,";
+  const detailsLines = buildCustomerDetailsLines(payload);
+  const detailsHtml = detailsLines.map((line) => escapeHtml(line)).join("<br>\n");
+  const onboardingUrl = getOnboardingGuideUrl();
+  const href = escapeHtml(onboardingUrl);
+
+  return `<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; font-size: 15px; line-height: 1.5; color: #111;">
+<p>${greeting}</p>
+<p>Thanks for requesting a quote.</p>
+<p>Next we'll reach out to confirm your enquiry before providing a quote. Details below:</p>
+<p style="white-space: pre-wrap; margin: 0 0 1em 0;">${detailsHtml}</p>
+<p>To make sure we're all on the same page, if you haven't already, please download a copy of our <a href="${href}">Onboarding Guide</a>.</p>
+<p>This tool is brand new and under development. We'd love to hear any feedback you have and in fact are offering a 5% discount on prints for this project, should you be so kind. Simply reply to this email with your feedback.</p>
+<p>Shot!<br>The FRESH Crew.</p>
+</body>
+</html>`;
 }
 
 async function buildArtworkAttachments(
@@ -343,17 +438,6 @@ async function buildArtworkAttachments(
   return attachments;
 }
 
-async function buildOnboardingPdfAttachment(): Promise<{ filename: string; content: Buffer } | null> {
-  try {
-    const filePath = path.join(process.cwd(), "public", "FRESH-Onboarding.pdf");
-    const content = await readFile(filePath);
-    return { filename: "Fresh-Tees-Onboarding.pdf", content };
-  } catch (e) {
-    console.warn("[Quote email] Onboarding PDF attachment failed:", e);
-    return null;
-  }
-}
-
 export async function sendQuoteEmail(payload: QuotePayload) {
   const { transportOptions, from, notify } = ensureEmailConfig();
 
@@ -379,8 +463,7 @@ export async function sendQuoteEmail(payload: QuotePayload) {
   if (shouldSendCustomer && customerTo) {
     const customerSubject = formatCustomerEmailSubject(payload);
     const customerText = formatCustomerEmailBody(payload);
-    const onboarding = await buildOnboardingPdfAttachment();
-    const customerAttachments = onboarding ? [onboarding] : [];
+    const customerHtml = formatCustomerEmailHtml(payload);
 
     await transporter.sendMail({
       from,
@@ -388,10 +471,9 @@ export async function sendQuoteEmail(payload: QuotePayload) {
       replyTo: notify,
       subject: customerSubject,
       text: customerText,
-      ...(customerAttachments.length > 0 && { attachments: customerAttachments }),
+      html: customerHtml,
     });
 
-    console.log("[Customer email] Sent to", customerTo, customerAttachments.length > 0 ? "(onboarding PDF attached)" : "");
+    console.log("[Customer email] Sent to", customerTo, "(HTML + text, onboarding link only)");
   }
 }
-
