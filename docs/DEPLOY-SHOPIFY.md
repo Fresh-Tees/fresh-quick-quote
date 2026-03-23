@@ -47,8 +47,53 @@ Use your real storefront domain(s)—comma-separated, no spaces (or trim is appl
 
 ### Option B: Page with button
 
-1. **Online Store** → **Pages** → **Add page** (e.g. title “Bulk quote”).
-2. In the page body, add a button or link HTML pointing to the gateway URL, or use your theme’s button block with external URL.
+1. **Online Store** → **Pages** → **Add page** (e.g. title “Bulk quote” or “Get a quote”).
+2. Add the button using **one** of the methods below (replace the gateway URL with your real production URL).
+
+#### B1: Theme editor (no code) — OS 2.0
+
+1. **Customize** the page template → add a **Button** block (name varies by theme: “Button”, “Call to action”).
+2. **Link** → paste your gateway URL, e.g. `https://quote.yourdomain.com.au/?utm_source=shopify&utm_medium=button`.
+3. Label the button e.g. **Start your quote** or **Get a bulk quote**.
+
+#### B2: HTML button (page body or Custom Liquid)
+
+If your theme lets you add **Custom HTML** / **HTML** in the page, or a **Custom Liquid** block, paste this and **replace** `https://your-gateway-url` with your real URL:
+
+```html
+<p>
+  <a
+    href="https://your-gateway-url/?utm_source=shopify&utm_medium=page_button"
+    class="button button--primary"
+    style="display:inline-block;padding:14px 28px;background:#111;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;"
+  >
+    Get a quote
+  </a>
+</p>
+```
+
+Opens in the same tab. For a **new tab**, add `target="_blank" rel="noopener noreferrer"` to the `<a>` tag.
+
+#### B3: Liquid (theme section / Custom Liquid)
+
+Same idea with Liquid so you can centralise the URL later (optional):
+
+```liquid
+{% assign gateway_url = "https://your-gateway-url" %}
+<p>
+  <a
+    href="{{ gateway_url }}?utm_source=shopify&utm_medium=page_button"
+    class="button"
+    style="display:inline-block;padding:14px 28px;background:#111;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;"
+  >
+    Get a quote
+  </a>
+</p>
+```
+
+Match your storefront: many themes already style `.button` — try `class="button"` only and remove inline `style` if it looks right.
+
+A ready-to-edit Liquid file lives in this repo: **[shopify-snippets/gateway-button.liquid](shopify-snippets/gateway-button.liquid)** — copy the contents into a **Custom Liquid** block and set `gateway_url`.
 
 ### Option C: Iframe embed (stays on your domain)
 
@@ -66,6 +111,18 @@ Use your real storefront domain(s)—comma-separated, no spaces (or trim is appl
     loading="lazy"
   ></iframe>
 </div>
+```
+
+To let the parent Shopify page jump back to top when steps change inside the iframe, add this listener once on the same page/template:
+
+```html
+<script>
+  window.addEventListener("message", function (event) {
+    if (event && event.data && event.data.type === "freshtees:scroll-top") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
+</script>
 ```
 
 5. **Required for iframe to work:** In Vercel → Project → Settings → Environment Variables, set **FRAME_ANCESTORS_URLS** for Production to your Shopify origin(s), e.g.:

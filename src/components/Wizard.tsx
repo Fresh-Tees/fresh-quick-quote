@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getFlowConfig, isSmallOrder, isBulkOrder } from "@/lib/flow";
 import type { Answers } from "@/lib/flow";
 import { getGatewaySessionId, track } from "@/lib/ga4";
@@ -20,6 +20,21 @@ function redirectToStudioFresh() {
   }
 }
 
+function scrollWizardToTop() {
+  // Keep the embedded app aligned to top on each step change.
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+
+  // Same-origin parents can be scrolled directly.
+  try {
+    window.top?.scrollTo({ top: 0, behavior: "smooth" });
+  } catch {
+    // Cross-origin iframes (e.g. Shopify): ask parent to scroll itself.
+    window.parent?.postMessage({ type: "freshtees:scroll-top" }, "*");
+  }
+}
+
 export function Wizard() {
   const config = getFlowConfig();
   const [step, setStep] = useState(0);
@@ -31,7 +46,6 @@ export function Wizard() {
   const currentQuestion = questions[step];
   const progress = ((step + 1) / questions.length) * 100;
   const sessionId = getGatewaySessionId();
-  const wizardScrollAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (screen !== "wizard") return;
@@ -45,7 +59,7 @@ export function Wizard() {
 
   useEffect(() => {
     if (screen !== "wizard") return;
-    wizardScrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollWizardToTop();
   }, [step, screen]);
 
   const setAnswer = (id: string, value: string) => {
@@ -121,7 +135,7 @@ export function Wizard() {
   }
 
   return (
-    <div ref={wizardScrollAnchorRef} className="w-full max-w-none lg:max-w-5xl xl:max-w-6xl mx-auto">
+    <div className="w-full max-w-none lg:max-w-5xl xl:max-w-6xl mx-auto">
       <div className="md:grid md:grid-cols-[minmax(11rem,13rem)_minmax(0,1fr)] md:gap-8 lg:gap-12 md:items-start">
         <div className="mb-6 md:mb-0 md:sticky md:top-6 flex flex-col gap-2">
           <p className="text-sm font-body font-medium text-off-black/80">
