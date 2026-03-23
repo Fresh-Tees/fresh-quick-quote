@@ -56,7 +56,7 @@ export function QualifiedOutcome({ answers }: { answers: Answers }) {
         garmentModel,
         garmentColour: defaultColour,
         quantity: defaultQty,
-        placements: [],
+        placements: [{ location: "front", printType: "screen", colourCount: 1 }],
         finishes: [],
       };
     });

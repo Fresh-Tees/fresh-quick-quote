@@ -124,6 +124,13 @@ export function ProjectConfigurator({
   const garmentModelLabel = (productType: string, modelValue: string) =>
     config.garmentModelsByProduct?.[productType]?.find((m) => m.value === modelValue)?.label ?? modelValue;
   const placementLabel = (v: string) => config.placementOptions?.find((p) => p.value === v)?.label ?? v;
+  const placementLabelForProduct = (productType: string, v: string) => {
+    if (productType === "hats") {
+      if (v === "right_sleeve") return "Right";
+      if (v === "left_sleeve") return "Left";
+    }
+    return placementLabel(v);
+  };
   const finishLabel = (v: string) => config.finishOptions.find((f) => f.value === v)?.label ?? v;
   const models = config.garmentModelsByProduct?.[addingProduct.productType] ?? [];
   const screenMinQty = config.screenPrintMinQty ?? 50;
@@ -442,7 +449,11 @@ export function ProjectConfigurator({
 
   return (
     <div className="mb-8 p-4 rounded-lg border border-off-black/20 bg-off-white/20">
-      <h2 className="font-display font-bold text-xl text-off-black mb-4">Configure your project</h2>
+      <h2 className="font-display font-bold text-xl text-off-black mb-2">Configure your project</h2>
+      <p className="font-body text-sm text-off-black/75 mb-6 max-w-3xl">
+        By default, estimates are based on a single-side, single-colour print. For a more accurate estimate,
+        edit the product in the configurator.
+      </p>
 
       {/* Step 1 – Purpose (read-only from wizard with edit) */}
       <div className="mb-6">
@@ -509,8 +520,13 @@ export function ProjectConfigurator({
             onClick={() => {
               setEditingProductIndex(null);
               setAddingProduct({ productType: "t_shirts", garmentModel: "staple", garmentColour: "white", quantity: 100, placements: [], finishes: [] });
-              setPlacementChecks({ front: false, back: false, sleeves: false });
-              setPlacementDetails({ front: { printType: "screen", colourCount: 1 }, back: { printType: "screen", colourCount: 1 }, sleeves: { printType: "screen", colourCount: 1 } });
+              setPlacementChecks({ front: false, back: false, right_sleeve: false, left_sleeve: false });
+              setPlacementDetails({
+                front: { printType: "screen", colourCount: 1 },
+                back: { printType: "screen", colourCount: 1 },
+                right_sleeve: { printType: "screen", colourCount: 1 },
+                left_sleeve: { printType: "screen", colourCount: 1 },
+              });
               setShowAddForm(true);
             }}
             className="min-h-[44px] px-4 py-2 border border-off-black/30 rounded font-body text-sm text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
@@ -596,7 +612,7 @@ export function ProjectConfigurator({
                       onChange={(e) => setPlacementChecks((c) => ({ ...c, [opt.value]: e.target.checked }))}
                       className="rounded focus:ring-2 focus:ring-accent focus:ring-offset-2"
                     />
-                    {opt.label}
+                    {placementLabelForProduct(addingProduct.productType, opt.value)}
                   </label>
                   {placementChecks[opt.value] && (
                     <div className="ml-5 mt-2 flex flex-wrap gap-4">
@@ -651,7 +667,7 @@ export function ProjectConfigurator({
                           }}
                           className="ml-1 min-h-[36px] px-2 py-1.5 border border-off-black/30 rounded text-sm font-body text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
                         >
-                          {placementUploading === opt.value ? "Uploading…" : (placementDetails[opt.value]?.artworkUrl ? "Replace" : "Upload")} artwork ({opt.label})
+                          {placementUploading === opt.value ? "Uploading…" : (placementDetails[opt.value]?.artworkUrl ? "Replace" : "Upload")} artwork ({placementLabelForProduct(addingProduct.productType, opt.value)})
                         </button>
                         {placementDetails[opt.value]?.artworkUrl && (
                           <button
@@ -885,7 +901,7 @@ export function ProjectConfigurator({
                 <div className="flex justify-between"><dt className="text-off-black/70">Garment Total</dt><dd>{formatCurrency(calc.garmentTotal)}</dd></div>
                 {calc.placementBreakdown.map((pb, j) => (
                   <div key={j} className="flex justify-between">
-                    <dt className="text-off-black/70">Print ({placementLabel(pb.location)} – {pb.printType})</dt>
+                    <dt className="text-off-black/70">Print ({placementLabelForProduct(products[i].productType, pb.location)} – {pb.printType})</dt>
                     <dd>{formatCurrency(pb.amount)}</dd>
                   </div>
                 ))}
