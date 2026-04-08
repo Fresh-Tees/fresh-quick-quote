@@ -261,27 +261,7 @@ function formatQuoteEmailBody(payload: QuotePayload): string {
   return lines.join("\n");
 }
 
-/** Public site origin for absolute links in customer emails (e.g. onboarding guide). */
-function getSiteBaseUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
-  if (explicit) return explicit;
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) {
-    const host = vercel.startsWith("http") ? vercel : `https://${vercel}`;
-    return host.replace(/\/$/, "");
-  }
-  return "";
-}
-
-function getOnboardingGuideUrl(): string {
-  const base = getSiteBaseUrl();
-  if (!base) {
-    console.warn(
-      "[Customer email] NEXT_PUBLIC_SITE_URL (or VERCEL_URL) is not set; onboarding link may be relative only."
-    );
-  }
-  return base ? `${base}/api/download-onboarding` : "/api/download-onboarding";
-}
+const HOW_WE_WORK_URL = "https://freshtees.com.au/pages/how-we-do";
 
 function formatAud(n: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -370,8 +350,6 @@ function formatCustomerEmailBody(payload: QuotePayload): string {
   const greeting = first ? `Yo ${first},` : "Yo,";
   const detailsLines = buildCustomerDetailsLines(payload);
   const detailsBlock = detailsLines.join("\n");
-  const onboardingUrl = getOnboardingGuideUrl();
-
   const lines: string[] = [];
   lines.push(greeting);
   lines.push("");
@@ -384,9 +362,9 @@ function formatCustomerEmailBody(payload: QuotePayload): string {
   lines.push(detailsBlock);
   lines.push("");
   lines.push(
-    "To make sure we're all on the same page, if you haven't already, please download a copy of our Onboarding Guide:"
+    "To make sure we're all on the same page, if you haven't already, please check out how we work so you're ready to rock and roll."
   );
-  lines.push(onboardingUrl);
+  lines.push(HOW_WE_WORK_URL);
   lines.push("");
   lines.push(
     "This tool is brand new and under development. We'd love to hear any feedback you have and in fact are offering a 5% discount on prints for this project, should you be so kind. Simply reply to this email with your feedback."
@@ -404,8 +382,7 @@ function formatCustomerEmailHtml(payload: QuotePayload): string {
   const greeting = first ? `Yo ${escapeHtml(first)},` : "Yo,";
   const detailsLines = buildCustomerDetailsLines(payload);
   const detailsHtml = detailsLines.map((line) => escapeHtml(line)).join("<br>\n");
-  const onboardingUrl = getOnboardingGuideUrl();
-  const href = escapeHtml(onboardingUrl);
+  const href = escapeHtml(HOW_WE_WORK_URL);
 
   return `<!DOCTYPE html>
 <html>
@@ -414,7 +391,7 @@ function formatCustomerEmailHtml(payload: QuotePayload): string {
 <p>Thanks for requesting a quote.</p>
 <p>Next we'll reach out to confirm your enquiry before providing a quote. Details below:</p>
 <p style="white-space: pre-wrap; margin: 0 0 1em 0;">${detailsHtml}</p>
-<p>To make sure we're all on the same page, if you haven't already, please download a copy of our <a href="${href}">Onboarding Guide</a>.</p>
+<p>To make sure we're all on the same page, if you haven't already, please check out <a href="${href}">how we work</a> so you're ready to rock and roll.</p>
 <p>This tool is brand new and under development. We'd love to hear any feedback you have and in fact are offering a 5% discount on prints for this project, should you be so kind. Simply reply to this email with your feedback.</p>
 <p>Shot!<br>The FRESH Crew.</p>
 </body>
@@ -487,6 +464,6 @@ export async function sendQuoteEmail(payload: QuotePayload) {
       html: customerHtml,
     });
 
-    console.log("[Customer email] Sent to", customerTo, "(HTML + text, onboarding link only)");
+    console.log("[Customer email] Sent to", customerTo, "(HTML + text, how-we-work link)");
   }
 }
