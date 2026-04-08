@@ -18,8 +18,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Get started | Freshtees",
-  description: "Tell us what you need—we'll point you in the right direction.",
+  title: "Quick quote | Freshtees",
+  description: "Configure garments, print, and finishes—see an indicative estimate and request a quote.",
 };
 
 export default function RootLayout({
