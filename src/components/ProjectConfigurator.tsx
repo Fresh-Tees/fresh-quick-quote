@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { getProjectConfiguration, getRestrictedColourOptions, type Answers } from "@/lib/flow";
 import { getGatewaySessionId, track } from "@/lib/ga4";
 import {
   calculateProjectSummary,
+  getDtfReferenceSize,
   getVolumeIncentiveMessage,
   type ConfiguredProduct,
   type PlacementConfig,
@@ -46,22 +47,18 @@ type PlacementPrintType = "screen" | "embroidery" | "dtf" | "unsure";
 export function ProjectConfigurator({
   value,
   onChange,
-  initialPurpose,
-  purposeLabel,
   answers,
   openContactFormForRequestCall,
   onRequestCallSubmit,
 }: {
   value: ProjectConfiguratorData;
   onChange: (data: ProjectConfiguratorData) => void;
-  initialPurpose?: string;
-  purposeLabel?: string;
   answers?: Answers;
   openContactFormForRequestCall?: boolean;
   onRequestCallSubmit?: (details: ContactDetails) => void;
 }) {
   const config = getProjectConfiguration();
-  const [purpose, setPurpose] = useState(value.purpose || initialPurpose || "");
+  const [purpose] = useState(value.purpose || "");
   const [products, setProducts] = useState<ConfiguredProduct[]>(value.products);
   const [dueDate, setDueDate] = useState(value.dueDate);
   const [rushFlag, setRushFlag] = useState(value.rushFlag);
@@ -72,7 +69,6 @@ export function ProjectConfigurator({
   const [contactForm, setContactForm] = useState({ fullName: "", email: "", phone: "", businessName: "" });
   const [contactFormError, setContactFormError] = useState<string | null>(null);
   const [contactFieldErrors, setContactFieldErrors] = useState<{ fullName?: string; email?: string; phone?: string }>({});
-  const [purposeEditMode, setPurposeEditMode] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
   const [addingProduct, setAddingProduct] = useState<ConfiguredProduct>({
@@ -133,13 +129,12 @@ export function ProjectConfigurator({
   };
   const finishLabel = (v: string) => config.finishOptions.find((f) => f.value === v)?.label ?? v;
   const models = config.garmentModelsByProduct?.[addingProduct.productType] ?? [];
-  const screenMinQty = config.screenPrintMinQty ?? 50;
-  const minQtyMessage = config.screenPrintMinQtyMessage ?? "Screen printing minimum is 50 units.";
-
-  const syncPurpose = (p: string) => {
-    setPurpose(p);
-    onChange({ purpose: p, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
-  };
+  const screenMinQty = config.screenPrintMinQty ?? 25;
+  const embroideryMinQty = config.embroideryMinQty ?? 25;
+  const minQtyMessage = config.screenPrintMinQtyMessage ?? "Screen printing minimum is 25 units.";
+  const embroideryEstimateNote =
+    config.embroideryEstimateNote ?? "Estimate based off of 10000 stitches, up to four colours.";
+  const projectFinishes = products[0]?.finishes ?? [];
 
   const syncContactAndSummary = (details: ContactDetails, result: ProjectSummary) => {
     const at = new Date().toISOString();
@@ -152,55 +147,72 @@ export function ProjectConfigurator({
     onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary: result, contactDetails: details, contactSubmittedAt: at });
   };
 
-  const addProduct = () => {
+  const buildPlacementsFromDraft = (
+    draft: ConfiguredProduct,
+    checks: Record<string, boolean>,
+    details: Record<string, { printType: PlacementPrintType; colourCount: number; artworkUrl?: string }>
+  ): PlacementConfig[] => {
     const placements: PlacementConfig[] = [];
     (["front", "back", "right_sleeve", "left_sleeve"] as const).forEach((loc) => {
-      if (!placementChecks[loc]) return;
-      const d = placementDetails[loc];
+      if (!checks[loc]) return;
+      const d = details[loc];
       if (!d) return;
-      if (d.printType === "screen" && addingProduct.quantity < screenMinQty) return;
+      if (d.printType === "screen" && draft.quantity < screenMinQty) return;
+      if (d.printType === "embroidery" && draft.quantity < embroideryMinQty) return;
       placements.push({
         location: loc,
         printType: d.printType,
-        ...(d.printType === "screen" && { colourCount: d.colourCount }),
+        ...((d.printType === "screen" || d.printType === "embroidery") && { colourCount: d.colourCount }),
         ...(d.artworkUrl && { artworkUrl: d.artworkUrl }),
       });
     });
-    if (placements.length === 0) {
-      setArtworkUploadError("Must select at least one placement.");
-      return;
-    }
+    return placements;
+  };
+
+  const commitEditingProduct = (
+    draft: ConfiguredProduct,
+    checks: Record<string, boolean> = placementChecks,
+    details: Record<string, { printType: PlacementPrintType; colourCount: number; artworkUrl?: string }> = placementDetails
+  ) => {
+    if (editingProductIndex === null) return;
+    const placements = buildPlacementsFromDraft(draft, checks, details);
     setArtworkUploadError(null);
     const next: ConfiguredProduct = {
-      ...addingProduct,
-      garmentModel: models.length ? addingProduct.garmentModel : addingProduct.productType,
+      ...draft,
+      garmentModel: (config.garmentModelsByProduct?.[draft.productType] ?? []).length ? draft.garmentModel : draft.productType,
       placements,
     };
-    const nextProducts =
-      editingProductIndex !== null
-        ? products.map((p, i) => (i === editingProductIndex ? next : p))
-        : [...products, next];
+    const nextProducts = products.map((p, i) => (i === editingProductIndex ? next : p));
+    setProducts(nextProducts);
+    setSummary(null);
+    onChange({ purpose, artworkStatus: value.artworkStatus, products: nextProducts, dueDate, rushFlag, summary: null, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
+  };
+
+  const addProductByType = (productType: string) => {
+    const modelsForType = config.garmentModelsByProduct?.[productType] ?? [];
+    const next: ConfiguredProduct = {
+      productType,
+      garmentModel: modelsForType[0]?.value ?? productType,
+      garmentColour: "white",
+      quantity: 100,
+      placements: [{ location: "front", printType: "screen", colourCount: 1 }],
+      finishes: projectFinishes,
+    };
+    const nextProducts = [...products, next];
     setProducts(nextProducts);
     setSummary(null);
     setShowAddForm(false);
     setEditingProductIndex(null);
-    setAddingProduct({
-      productType: "t_shirts",
-      garmentModel: "staple",
-      garmentColour: "white",
-      quantity: 100,
-      placements: [],
-      finishes: [],
+    onChange({
+      purpose,
+      artworkStatus: value.artworkStatus,
+      products: nextProducts,
+      dueDate,
+      rushFlag,
+      summary: null,
+      contactDetails: contactDetails ?? undefined,
+      contactSubmittedAt: contactSubmittedAt ?? undefined,
     });
-    setPlacementChecks({ front: false, back: false, right_sleeve: false, left_sleeve: false });
-    setPlacementDetails({
-      front: { printType: "screen", colourCount: 1 },
-      back: { printType: "screen", colourCount: 1 },
-      right_sleeve: { printType: "screen", colourCount: 1 },
-      left_sleeve: { printType: "screen", colourCount: 1 },
-    });
-    setArtworkUploadError(null);
-    onChange({ purpose, artworkStatus: value.artworkStatus, products: nextProducts, dueDate, rushFlag, summary: null, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
   };
 
   const removeProduct = (index: number) => {
@@ -259,11 +271,26 @@ export function ProjectConfigurator({
     setArtworkUploadError(null);
   };
 
-  const toggleFinish = (f: string) => {
-    const next = addingProduct.finishes.includes(f)
-      ? addingProduct.finishes.filter((x) => x !== f)
-      : [...addingProduct.finishes, f];
-    setAddingProduct((p) => ({ ...p, finishes: next }));
+  const toggleProjectFinish = (finish: string) => {
+    const nextFinishes = projectFinishes.includes(finish)
+      ? projectFinishes.filter((x) => x !== finish)
+      : [...projectFinishes, finish];
+    const nextProducts = products.map((p) => ({ ...p, finishes: nextFinishes }));
+    setProducts(nextProducts);
+    setSummary(null);
+    if (editingProductIndex !== null) {
+      setAddingProduct((p) => ({ ...p, finishes: nextFinishes }));
+    }
+    onChange({
+      purpose,
+      artworkStatus: value.artworkStatus,
+      products: nextProducts,
+      dueDate,
+      rushFlag,
+      summary: null,
+      contactDetails: contactDetails ?? undefined,
+      contactSubmittedAt: contactSubmittedAt ?? undefined,
+    });
   };
 
   const runCalculation = (): ProjectSummary | null => {
@@ -364,6 +391,10 @@ export function ProjectConfigurator({
   };
 
   const showRush = dueDate && businessDaysFromToday(dueDate) < (config.businessDaysForRushThreshold ?? 10);
+  const liveEstimatedTotal = useMemo(() => {
+    if (products.length === 0) return null;
+    return calculateProjectSummary(products).estimatedProjectTotal;
+  }, [products]);
 
   const contactForSubmit = contactDetails ?? value.contactDetails ?? null;
 
@@ -448,60 +479,74 @@ export function ProjectConfigurator({
   };
 
   return (
-    <div className="mb-8 p-4 rounded-lg border border-off-black/20 bg-off-white/20">
-      <h2 className="font-display font-bold text-xl text-off-black mb-2">Configure your project</h2>
+    <div className="relative mb-8 rounded-lg border border-off-black/20 bg-off-white/20 max-h-[min(85vh,56rem)] overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
+      <div className="p-4">
+      {liveEstimatedTotal != null && (
+        <div className="sticky top-0 z-30 mb-3 flex justify-end pointer-events-none">
+          <div className="rounded-full border border-burnt-orange/30 bg-white/90 backdrop-blur-sm px-4 py-1.5 shadow-sm ring-1 ring-white/80">
+            <p className="font-body text-[10px] uppercase tracking-wide text-off-black/60 text-right">Live estimate</p>
+            <p className="font-display font-bold text-burnt-orange text-lg leading-none">{formatCurrency(liveEstimatedTotal)}</p>
+          </div>
+        </div>
+      )}
+      <div className="relative z-10">
+      <h2 className="font-display font-bold text-xl text-off-black mb-2">Instant Pricing Calculator</h2>
       <p className="font-body text-sm text-off-black/75 mb-6 max-w-3xl">
         By default, estimates are based on a single-side, single-colour print. For a more accurate estimate,
         edit the product in the configurator.
       </p>
 
-      {/* Step 1 – Purpose (read-only from wizard with edit) */}
       <div className="mb-6">
-        <p className="font-body text-sm font-medium text-off-black mb-2">{config.purposeQuestion}</p>
-        {!purposeEditMode ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-body text-sm text-off-black/90">
-            {(purposeLabel ?? config.purposeOptions.find((o) => o.value === purpose)?.label ?? purpose) || "—"}
-            </span>
+        <p className="font-body text-sm font-medium text-off-black mb-2">Pick your bases</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {config.productTypes.map((t) => (
             <button
+              key={t.value}
               type="button"
-              onClick={() => setPurposeEditMode(true)}
-              className="min-h-[44px] min-w-[44px] inline-flex items-center font-body text-sm text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded px-2 -ml-2"
+              onClick={() => addProductByType(t.value)}
+              className="min-h-[44px] px-3 py-2 rounded border border-off-black/20 bg-white text-off-black font-body text-sm hover:bg-off-white/60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 text-left"
             >
-              Edit
+              {t.label}
             </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {config.purposeOptions.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 font-body text-sm cursor-pointer">
-                <input
-                  type="radio"
-                  name="purpose"
-                  checked={purpose === opt.value}
-                  onChange={() => {
-                    syncPurpose(opt.value);
-                    setPurposeEditMode(false);
-                  }}
-                  className="border-off-black/30 focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                />
-                <span className="text-off-black/90">{opt.label}</span>
-              </label>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
+        <p className="font-body text-xs text-off-black/60 mt-2">
+          Each click adds one product to your project.
+        </p>
       </div>
 
-      {/* Step 2–4 – Product builder */}
+      {/* Product builder */}
       <div className="mb-4">
-        <p className="font-body text-sm font-medium text-off-black mb-2">Products</p>
+        {products.length > 0 && (
+          <p className="font-body text-sm font-medium text-off-black mb-2">Products</p>
+        )}
         {products.length > 0 && (
           <ul className="mb-3 space-y-2">
             {products.map((p, i) => (
               <li key={i} className="flex justify-between items-center font-body text-sm text-off-black/90 bg-white px-3 py-2 rounded">
-                <span>
-                  {garmentModelLabel(p.productType, p.garmentModel)} × {p.quantity} · {p.placements.length} placement(s) · {p.finishes.length} finish(es)
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startEditProduct(i)}
+                    className="px-2.5 py-1.5 rounded border border-off-black/20 bg-off-white/30 text-off-black hover:bg-off-white/60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  >
+                    {garmentModelLabel(p.productType, p.garmentModel)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEditProduct(i)}
+                    className="px-2.5 py-1.5 rounded border border-off-black/20 bg-off-white/30 text-off-black hover:bg-off-white/60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  >
+                    {p.quantity} Units
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEditProduct(i)}
+                    className="px-2.5 py-1.5 rounded border border-off-black/20 bg-off-white/30 text-off-black hover:bg-off-white/60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  >
+                    {p.placements.length} Placement(s)
+                  </button>
+                </div>
                 <span className="flex items-center gap-1">
                   <button type="button" onClick={() => startEditProduct(i)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-off-black/80 hover:text-off-black hover:underline text-xs focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded px-2">
                     Edit
@@ -514,26 +559,7 @@ export function ProjectConfigurator({
             ))}
           </ul>
         )}
-        {!showAddForm ? (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingProductIndex(null);
-              setAddingProduct({ productType: "t_shirts", garmentModel: "staple", garmentColour: "white", quantity: 100, placements: [], finishes: [] });
-              setPlacementChecks({ front: false, back: false, right_sleeve: false, left_sleeve: false });
-              setPlacementDetails({
-                front: { printType: "screen", colourCount: 1 },
-                back: { printType: "screen", colourCount: 1 },
-                right_sleeve: { printType: "screen", colourCount: 1 },
-                left_sleeve: { printType: "screen", colourCount: 1 },
-              });
-              setShowAddForm(true);
-            }}
-            className="min-h-[44px] px-4 py-2 border border-off-black/30 rounded font-body text-sm text-off-black hover:bg-off-white/50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-          >
-            Add product
-          </button>
-        ) : (
+        {showAddForm ? (
           <div className="p-4 rounded bg-white border border-off-white space-y-5">
             <div>
               <p className="font-body text-xs font-medium text-off-black/80 mb-2">Product details</p>
@@ -545,11 +571,13 @@ export function ProjectConfigurator({
                   onChange={(e) => {
                     const v = e.target.value;
                     const modelsForType = config.garmentModelsByProduct?.[v] ?? [];
-                    setAddingProduct((p) => ({
-                      ...p,
+                    const next = {
+                      ...addingProduct,
                       productType: v,
                       garmentModel: modelsForType[0]?.value ?? v,
-                    }));
+                    };
+                    setAddingProduct(next);
+                    commitEditingProduct(next);
                   }}
                   className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
@@ -562,7 +590,11 @@ export function ProjectConfigurator({
                 <label className="block font-body text-xs text-off-black/70">Garment model</label>
                 <select
                   value={addingProduct.garmentModel}
-                  onChange={(e) => setAddingProduct((p) => ({ ...p, garmentModel: e.target.value }))}
+                  onChange={(e) => {
+                    const next = { ...addingProduct, garmentModel: e.target.value };
+                    setAddingProduct(next);
+                    commitEditingProduct(next);
+                  }}
                   className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
                   {models.map((m) => (
@@ -577,7 +609,11 @@ export function ProjectConfigurator({
                 <label className="block font-body text-xs text-off-black/70">Garment colour</label>
                 <select
                   value={colourOptions.some((o) => o.value === addingProduct.garmentColour) ? addingProduct.garmentColour : "white"}
-                  onChange={(e) => setAddingProduct((p) => ({ ...p, garmentColour: e.target.value }))}
+                  onChange={(e) => {
+                    const next = { ...addingProduct, garmentColour: e.target.value };
+                    setAddingProduct(next);
+                    commitEditingProduct(next);
+                  }}
                   className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
                   {colourOptions.map((o) => (
@@ -586,12 +622,16 @@ export function ProjectConfigurator({
                 </select>
               </div>
               <div>
-                <label className="block font-body text-xs text-off-black/70">Quantity (min 50)</label>
+                <label className="block font-body text-xs text-off-black/70">Quantity (min 25)</label>
                 <input
                   type="number"
                   min={1}
                   value={addingProduct.quantity}
-                  onChange={(e) => setAddingProduct((p) => ({ ...p, quantity: parseInt(e.target.value, 10) || 0 }))}
+                  onChange={(e) => {
+                    const next = { ...addingProduct, quantity: parseInt(e.target.value, 10) || 0 };
+                    setAddingProduct(next);
+                    commitEditingProduct(next);
+                  }}
                   className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 />
               </div>
@@ -599,6 +639,9 @@ export function ProjectConfigurator({
 
             {addingProduct.quantity > 0 && addingProduct.quantity < screenMinQty && (
               <p className="font-body text-xs text-accent">{minQtyMessage}</p>
+            )}
+            {addingProduct.quantity > 0 && addingProduct.quantity < embroideryMinQty && (
+              <p className="font-body text-xs text-accent">Embroidery minimum is {embroideryMinQty} units.</p>
             )}
 
             <p className="font-body text-xs font-medium text-off-black/80 pt-1">Placements</p>
@@ -609,7 +652,13 @@ export function ProjectConfigurator({
                     <input
                       type="checkbox"
                       checked={!!placementChecks[opt.value]}
-                      onChange={(e) => setPlacementChecks((c) => ({ ...c, [opt.value]: e.target.checked }))}
+                      onChange={(e) =>
+                        setPlacementChecks((c) => {
+                          const nextChecks = { ...c, [opt.value]: e.target.checked };
+                          commitEditingProduct(addingProduct, nextChecks, placementDetails);
+                          return nextChecks;
+                        })
+                      }
                       className="rounded focus:ring-2 focus:ring-accent focus:ring-offset-2"
                     />
                     {placementLabelForProduct(addingProduct.productType, opt.value)}
@@ -623,28 +672,50 @@ export function ProjectConfigurator({
                           onChange={(e) => {
                             const v = e.target.value as PlacementPrintType;
                             setPlacementDetails((d) => ({
-                              ...d,
-                              [opt.value]: { ...d[opt.value], printType: v, colourCount: d[opt.value]?.colourCount ?? 1 },
+                              ...(() => {
+                                const nextDetails = {
+                                  ...d,
+                                  [opt.value]: { ...d[opt.value], printType: v, colourCount: d[opt.value]?.colourCount ?? 1 },
+                                };
+                                commitEditingProduct(addingProduct, placementChecks, nextDetails);
+                                return nextDetails;
+                              })(),
                             }));
                           }}
                           className="ml-1 min-h-[44px] px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                         >
                           {(config.placementPrintTypes ?? []).map((t) => (
-                            <option key={t.value} value={t.value} disabled={t.value === "screen" && addingProduct.quantity < screenMinQty}>
+                            <option
+                              key={t.value}
+                              value={t.value}
+                              disabled={
+                                (t.value === "screen" && addingProduct.quantity < screenMinQty) ||
+                                (t.value === "embroidery" && addingProduct.quantity < embroideryMinQty)
+                              }
+                            >
                               {t.label}
                             </option>
                           ))}
                         </select>
                       </div>
-                      {(placementDetails[opt.value] ?? {}).printType === "screen" && addingProduct.quantity >= screenMinQty && (
+                      {((placementDetails[opt.value] ?? {}).printType === "screen" && addingProduct.quantity >= screenMinQty) ||
+                      ((placementDetails[opt.value] ?? {}).printType === "embroidery" && addingProduct.quantity >= embroideryMinQty) ? (
                         <div>
-                          <span className="font-body text-xs text-off-black/70">Colours </span>
+                          <span className="font-body text-xs text-off-black/70">
+                            {(placementDetails[opt.value] ?? {}).printType === "embroidery" ? "Thread colours " : "Colours "}
+                          </span>
                           <select
                             value={(placementDetails[opt.value] ?? { colourCount: 1 }).colourCount ?? 1}
                             onChange={(e) =>
                               setPlacementDetails((d) => ({
-                                ...d,
-                                [opt.value]: { ...d[opt.value], colourCount: parseInt(e.target.value, 10) },
+                                ...(() => {
+                                  const nextDetails = {
+                                    ...d,
+                                    [opt.value]: { ...d[opt.value], colourCount: parseInt(e.target.value, 10) },
+                                  };
+                                  commitEditingProduct(addingProduct, placementChecks, nextDetails);
+                                  return nextDetails;
+                                })(),
                               }))
                             }
                             className="ml-1 min-h-[44px] px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
@@ -654,6 +725,14 @@ export function ProjectConfigurator({
                             ))}
                           </select>
                         </div>
+                      ) : null}
+                      {(placementDetails[opt.value] ?? {}).printType === "embroidery" && addingProduct.quantity >= embroideryMinQty && (
+                        <p className="w-full font-body text-[11px] text-off-black/60">{embroideryEstimateNote}</p>
+                      )}
+                      {(placementDetails[opt.value] ?? {}).printType === "dtf" && (
+                        <p className="w-full font-body text-[11px] text-off-black/60">
+                          Current pricing assumes {getDtfReferenceSize(opt.value)} print size for this placement.
+                        </p>
                       )}
                       <div className="mt-2">
                         <span className="font-body text-xs text-off-black/70">Artwork </span>
@@ -672,10 +751,16 @@ export function ProjectConfigurator({
                         {placementDetails[opt.value]?.artworkUrl && (
                           <button
                             type="button"
-                            onClick={() => setPlacementDetails((d) => ({
-                              ...d,
-                              [opt.value]: { ...d[opt.value], artworkUrl: undefined },
-                            }))}
+                            onClick={() =>
+                              setPlacementDetails((d) => {
+                                const nextDetails = {
+                                  ...d,
+                                  [opt.value]: { ...d[opt.value], artworkUrl: undefined },
+                                };
+                                commitEditingProduct(addingProduct, placementChecks, nextDetails);
+                                return nextDetails;
+                              })
+                            }
                             className="ml-2 font-body text-xs text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
                           >
                             Clear
@@ -686,23 +771,6 @@ export function ProjectConfigurator({
                   )}
                 </div>
               ))}
-            </div>
-
-            <p className="font-body text-xs font-medium text-off-black/80 pt-1">Finishes (add-ons)</p>
-            <div>
-              <div className="flex flex-wrap gap-3">
-                {config.finishOptions.map((o) => (
-                  <label key={o.value} className="flex items-center gap-2 font-body text-sm min-h-[44px]">
-                    <input
-                      type="checkbox"
-                      checked={addingProduct.finishes.includes(o.value)}
-                      onChange={() => toggleFinish(o.value)}
-                      className="rounded focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                    />
-                    <span>{o.label}{o.flagForReview && " (quote)"}</span>
-                  </label>
-                ))}
-              </div>
             </div>
 
             <input
@@ -728,10 +796,14 @@ export function ProjectConfigurator({
                     return;
                   }
                   if (data.url) {
-                    setPlacementDetails((d) => ({
-                      ...d,
-                      [placement]: { ...(d[placement] ?? { printType: "screen" as const, colourCount: 1 }), artworkUrl: data.url },
-                    }));
+                    setPlacementDetails((d) => {
+                      const nextDetails = {
+                        ...d,
+                        [placement]: { ...(d[placement] ?? { printType: "screen" as const, colourCount: 1 }), artworkUrl: data.url },
+                      };
+                      commitEditingProduct(addingProduct, placementChecks, nextDetails);
+                      return nextDetails;
+                    });
                   }
                 } catch {
                   setArtworkUploadError("Upload failed. Please try again.");
@@ -749,17 +821,14 @@ export function ProjectConfigurator({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={addProduct}
+                onClick={cancelAddOrEdit}
                 className="min-h-[44px] px-4 py-2 bg-off-black text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               >
-                {editingProductIndex !== null ? "Save changes" : "Add to project"}
-              </button>
-              <button type="button" onClick={cancelAddOrEdit} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded">
-                Cancel
+                Done
               </button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Step 5 – Timeline */}
@@ -786,6 +855,25 @@ export function ProjectConfigurator({
         </div>
       )}
 
+      {products.length > 0 && !!dueDate && (
+        <div className="mb-4">
+          <p className="font-body text-sm font-medium text-off-black mb-2">Do you want to dial up retail readiness?</p>
+          <div className="flex flex-wrap gap-3">
+            {config.finishOptions.map((o) => (
+              <label key={o.value} className="flex items-center gap-2 font-body text-sm min-h-[44px]">
+                <input
+                  type="checkbox"
+                  checked={projectFinishes.includes(o.value)}
+                  onChange={() => toggleProjectFinish(o.value)}
+                  className="rounded focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                />
+                <span>{o.label}{o.flagForReview && " (quote)"}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {products.length > 0 && !quoteSubmitted && (
         <div className="mb-4">
           <button
@@ -794,7 +882,7 @@ export function ProjectConfigurator({
             onClick={handleSubmitQuoteAndReveal}
             className="min-h-[44px] w-full px-6 py-3 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-70"
           >
-            {submitQuoteLoading ? "Submitting…" : "Submit Request and Reveal Estimate"}
+            {submitQuoteLoading ? "Submitting…" : "Calculate Breakdown"}
           </button>
           {submitQuoteError && (
             <p className="font-body text-sm text-red-600 mt-2">{submitQuoteError}</p>
@@ -932,6 +1020,8 @@ export function ProjectConfigurator({
           )}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

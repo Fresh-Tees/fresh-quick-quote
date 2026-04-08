@@ -162,9 +162,15 @@ export type ProjectConfiguration = {
   screenPrintMinQtyMessage?: string;
   screenPrintMaxColours?: number;
   embroideryMinQty?: number;
+  embroideryEstimateNote?: string;
+  embroideryPricePerUnit?: number;
+  embroideryIncludedColours?: number;
+  embroideryAdditionalColourPerUnit?: number;
+  embroideryCapSurchargePerUnit?: number;
+  embroiderySetupFee?: number;
   garmentCostByProduct: Record<string, number>;
   setupCostPerScreen: number;
-  finishOptions: { value: string; label: string; costPerUnit: number; flagForReview?: boolean; treatAsScreenPlacement?: boolean }[];
+  finishOptions: { value: string; label: string; costPerUnit: number; flatCost?: number; flagForReview?: boolean; treatAsScreenPlacement?: boolean }[];
   rushOptions?: { label: string; surchargePercent: number }[];
   businessDaysForRushThreshold?: number;
   bundleMessage: string;
@@ -249,7 +255,6 @@ const WIZARD_GARMENT_TO_PRODUCT_TYPE: Record<string, string> = {
   corporate: "corporate_wear",
   work_wear: "work_wear",
   totes: "tote_bags",
-  other: "other_merch",
 };
 
 /**

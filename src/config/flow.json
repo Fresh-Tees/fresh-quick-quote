@@ -61,7 +61,6 @@
         { "value": "corporate", "label": "Corporate Wear" },
         { "value": "work_wear", "label": "Work Wear" },
         { "value": "totes", "label": "Totes" },
-        { "value": "other", "label": "Other merch (bottles, pens, etc.)" },
         { "value": "unsure", "label": "Unsure" }
       ]
     },
@@ -169,8 +168,7 @@
       { "value": "hats", "label": "Hats" },
       { "value": "corporate_wear", "label": "Corporate Wear" },
       { "value": "work_wear", "label": "Work Wear" },
-      { "value": "tote_bags", "label": "Totes" },
-      { "value": "other_merch", "label": "Other Merch" }
+      { "value": "tote_bags", "label": "Totes" }
     ],
     "garmentColourOptions": [
       { "value": "white", "label": "White", "pricingTier": "white" },
@@ -352,21 +350,15 @@
       ],
       "tote_bags": [
         { "value": "carrie", "label": "Carrie" }
-      ],
-      "other_merch": [
-        { "value": "bottles", "label": "Bottles" },
-        { "value": "pens", "label": "Pens" },
-        { "value": "stubby_coolers", "label": "Stubby Coolers" }
       ]
     },
     "garmentCostByModel": {
-      "t_shirts": { "staple": 9.50, "classic": 13.50, "heavy_faded": 16.50, "australian_made": 0 },
-      "hoodies": { "supply_hood": 25.60, "box_hood": 39.50, "made_hood": 48.00, "australian_made": 0 },
+      "t_shirts": { "staple": 9.50, "classic": 13.50, "heavy_faded": 16.50, "australian_made": 20.00 },
+      "hoodies": { "supply_hood": 25.60, "box_hood": 39.50, "made_hood": 48.00, "australian_made": 50.00 },
       "hats": { "cap_std": 8.50 },
       "corporate_wear": { "oxford": 36.00, "polo": 17.00, "puffer_vest": 105.00 },
       "work_wear": { "hi_vis_polo": 25.00, "canvas_heavy_jacket": 75.00 },
-      "tote_bags": { "carrie": 10.50 },
-      "other_merch": { "bottles": 6.50, "pens": 1.50, "stubby_coolers": 3.50 }
+      "tote_bags": { "carrie": 10.50 }
     },
     "placementOptions": [
       { "value": "front", "label": "Front" },
@@ -375,7 +367,7 @@
       { "value": "left_sleeve", "label": "Left Sleeve" }
     ],
     "placementPrintTypes": [
-      { "value": "screen", "label": "Screen Print (min 50)" },
+      { "value": "screen", "label": "Screen Print (min 25)" },
       { "value": "embroidery", "label": "Embroidery" },
       { "value": "dtf", "label": "DTF" },
       { "value": "unsure", "label": "Unsure" }
@@ -391,42 +383,46 @@
       "note": "Based on 250 units, 1 colour screen print. Final pricing depends on configuration."
     },
     "wizardPurposeToProjectPurpose": {},
-    "screenPrintMinQty": 50,
+    "screenPrintMinQty": 25,
     "screenPrintMaxColours": 10,
-    "screenPrintMinQtyMessage": "Screen printing minimum is 50 units.",
-    "embroideryMinQty": 50,
+    "screenPrintMinQtyMessage": "Screen printing minimum is 25 units.",
+    "embroideryMinQty": 25,
     "garmentCostByProduct": {
       "t_shirts": 9.50,
       "hoodies": 25.60,
       "hats": 8.50,
       "corporate_wear": 17.00,
       "work_wear": 25.00,
-      "tote_bags": 10.50,
-      "other_merch": 6.50
+      "tote_bags": 10.50
     },
     "screenPrintTiers": [
-      { "min": 50, "max": 124, "1colour": 5.75, "2colour": 6.35, "3colour": 6.95 },
+      { "min": 25, "max": 124, "1colour": 5.75, "2colour": 6.35, "3colour": 6.95 },
       { "min": 125, "max": 249, "1colour": 3.90, "2colour": 4.30, "3colour": 4.70 },
       { "min": 250, "max": 499, "1colour": 2.90, "2colour": 3.20, "3colour": 3.50 },
       { "min": 500, "max": 999, "1colour": 2.00, "2colour": 2.20, "3colour": 2.40 },
       { "min": 1000, "max": null, "1colour": 1.75, "2colour": 1.90, "3colour": 2.10 }
     ],
     "screenPrintTiersColoured": [
-      { "min": 50, "max": 124, "1colour": 6.25, "2colour": 6.85, "3colour": 7.45 },
+      { "min": 25, "max": 124, "1colour": 6.25, "2colour": 6.85, "3colour": 7.45 },
       { "min": 125, "max": 249, "1colour": 4.30, "2colour": 4.70, "3colour": 5.10 },
       { "min": 250, "max": 499, "1colour": 3.20, "2colour": 3.50, "3colour": 3.80 },
       { "min": 500, "max": 999, "1colour": 2.20, "2colour": 2.40, "3colour": 2.60 },
       { "min": 1000, "max": null, "1colour": 1.95, "2colour": 2.10, "3colour": 2.30 }
     ],
-    "embroideryPricePerUnit": 8.00,
+    "embroideryPricePerUnit": 8.97,
+    "embroideryIncludedColours": 4,
+    "embroideryAdditionalColourPerUnit": 0.30,
+    "embroideryCapSurchargePerUnit": 0.50,
+    "embroiderySetupFee": 60,
+    "embroideryEstimateNote": "Estimate based based off of 10000 stitch design",
     "setupCostPerScreen": 60,
     "finishOptions": [
       { "value": "fold_bag", "label": "Fold & Bag", "costPerUnit": 1.50, "flagForReview": false },
-      { "value": "neck_print", "label": "Neck Print", "costPerUnit": 0, "treatAsScreenPlacement": true, "flagForReview": false },
-      { "value": "woven_neck_labels", "label": "Woven Neck Labels", "costPerUnit": 0, "flagForReview": true },
-      { "value": "pip_tags", "label": "Pip Tags", "costPerUnit": 0, "flagForReview": true },
-      { "value": "swing_tag", "label": "Swing Tag Attachment", "costPerUnit": 0.50, "flagForReview": false },
-      { "value": "barcodes", "label": "Barcodes", "costPerUnit": 0.50, "flagForReview": false }
+      { "value": "neck_print_label_print", "label": "Neck Print Label Print", "costPerUnit": 1.50, "flagForReview": false },
+      { "value": "woven_neck_labels", "label": "Woven Neck Labels (300 units)", "costPerUnit": 0, "flatCost": 300, "flagForReview": false },
+      { "value": "pip_tags", "label": "Pip Tags (300 units)", "costPerUnit": 0, "flatCost": 200, "flagForReview": false },
+      { "value": "swing_tag", "label": "Swing Tag (300 units)", "costPerUnit": 0, "flatCost": 300, "flagForReview": false },
+      { "value": "swing_tag_attachment", "label": "Swing Tag Attchment", "costPerUnit": 0.50, "flagForReview": false }
     ],
     "rushOptions": [
       { "label": "3–5 business days", "surchargePercent": 20 },

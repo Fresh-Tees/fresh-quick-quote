@@ -53,8 +53,12 @@ function getProjectConfig() {
     screenPrintTiers: { min: number; max: number | null; "1colour": number; "2colour": number; "3colour": number }[];
     screenPrintTiersColoured?: { min: number; max: number | null; "1colour": number; "2colour": number; "3colour": number }[];
     embroideryPricePerUnit?: number;
+    embroideryIncludedColours?: number;
+    embroideryAdditionalColourPerUnit?: number;
+    embroideryCapSurchargePerUnit?: number;
+    embroiderySetupFee?: number;
     setupCostPerScreen: number;
-    finishOptions: { value: string; costPerUnit: number; treatAsScreenPlacement?: boolean; flagForReview?: boolean }[];
+    finishOptions: { value: string; costPerUnit: number; flatCost?: number; treatAsScreenPlacement?: boolean; flagForReview?: boolean }[];
     bundleDiscountPercent: number;
   } | undefined;
 }
@@ -94,16 +98,89 @@ export function getScreenPrintPricePerUnit(
   return basePrice + extraCharge;
 }
 
-export function getDtfPricePerUnit(quantity: number): number {
-  if (quantity >= 250) return 4.0;
-  if (quantity >= 100) return 4.5;
-  if (quantity >= 50) return 5.0;
-  return 6.0;
+export function getDtfReferenceSize(location: string): string {
+  if (location === "front") return "10cm x 10cm";
+  if (location === "back") return "A3";
+  if (location === "left_sleeve" || location === "right_sleeve") return "6cm x 6cm";
+  return "10cm x 10cm";
 }
 
-export function getEmbroideryPricePerUnit(): number {
+type DtfSizeKey = "6cm x 6cm" | "10cm x 10cm" | "Approx A5" | "Approx A4" | "A3";
+
+const DTF_PRICING_TABLE: Record<DtfSizeKey, { min: number; max: number | null; price: number }[]> = {
+  "6cm x 6cm": [
+    { min: 1, max: 4, price: 14.5 },
+    { min: 5, max: 9, price: 12.5 },
+    { min: 10, max: 19, price: 6.0 },
+    { min: 20, max: 49, price: 4.0 },
+    { min: 50, max: 99, price: 3.25 },
+    { min: 100, max: 249, price: 3.0 },
+    { min: 250, max: 499, price: 2.75 },
+    { min: 500, max: 749, price: 2.5 },
+    { min: 750, max: null, price: 2.45 },
+  ],
+  "10cm x 10cm": [
+    { min: 1, max: 4, price: 16.5 },
+    { min: 5, max: 9, price: 14.5 },
+    { min: 10, max: 19, price: 7.0 },
+    { min: 20, max: 49, price: 4.75 },
+    { min: 50, max: 99, price: 4.0 },
+    { min: 100, max: 249, price: 3.5 },
+    { min: 250, max: 499, price: 3.25 },
+    { min: 500, max: 749, price: 3.0 },
+    { min: 750, max: null, price: 3.0 },
+  ],
+  "Approx A5": [
+    { min: 1, max: 4, price: 18.5 },
+    { min: 5, max: 9, price: 16.5 },
+    { min: 10, max: 19, price: 9.0 },
+    { min: 20, max: 49, price: 6.0 },
+    { min: 50, max: 99, price: 5.25 },
+    { min: 100, max: 249, price: 4.25 },
+    { min: 250, max: 499, price: 3.75 },
+    { min: 500, max: 749, price: 3.5 },
+    { min: 750, max: null, price: 3.4 },
+  ],
+  "Approx A4": [
+    { min: 1, max: 4, price: 20.5 },
+    { min: 5, max: 9, price: 18.5 },
+    { min: 10, max: 19, price: 11.5 },
+    { min: 20, max: 49, price: 7.5 },
+    { min: 50, max: 99, price: 6.5 },
+    { min: 100, max: 249, price: 5.0 },
+    { min: 250, max: 499, price: 4.5 },
+    { min: 500, max: 749, price: 4.25 },
+    { min: 750, max: null, price: 4.0 },
+  ],
+  A3: [
+    { min: 1, max: 4, price: 26.5 },
+    { min: 5, max: 9, price: 20.5 },
+    { min: 10, max: 19, price: 17.0 },
+    { min: 20, max: 49, price: 10.75 },
+    { min: 50, max: 99, price: 9.25 },
+    { min: 100, max: 249, price: 7.0 },
+    { min: 250, max: 499, price: 6.25 },
+    { min: 500, max: 749, price: 6.0 },
+    { min: 750, max: null, price: 5.9 },
+  ],
+};
+
+export function getDtfPricePerUnit(quantity: number, size: DtfSizeKey): number {
+  const tier = DTF_PRICING_TABLE[size].find((t) => t.min <= quantity && (t.max === null || t.max >= quantity));
+  return tier?.price ?? DTF_PRICING_TABLE[size][0].price;
+}
+
+export function getEmbroideryPricePerUnit(
+  colourCount: number,
+  productType: string
+): number {
   const cfg = getProjectConfig();
-  return cfg?.embroideryPricePerUnit ?? 8;
+  const base = cfg?.embroideryPricePerUnit ?? 8.97;
+  const included = cfg?.embroideryIncludedColours ?? 4;
+  const extraPerColour = cfg?.embroideryAdditionalColourPerUnit ?? 0.3;
+  const capSurcharge = productType === "hats" ? (cfg?.embroideryCapSurchargePerUnit ?? 0.5) : 0;
+  const extraColours = Math.max(0, colourCount - included);
+  return base + extraColours * extraPerColour + capSurcharge;
 }
 
 export function getGarmentCostPerUnit(productType: string, garmentModel?: string): number {
@@ -126,6 +203,12 @@ export function getFinishCostPerUnit(finishValue: string): number {
   return opt?.costPerUnit ?? 0;
 }
 
+export function getFinishFlatCost(finishValue: string): number {
+  const cfg = getProjectConfig();
+  const opt = cfg?.finishOptions?.find((o) => o.value === finishValue);
+  return opt?.flatCost ?? 0;
+}
+
 export function getBundleDiscountPercent(): number {
   const cfg = getProjectConfig();
   return cfg?.bundleDiscountPercent ?? 0;
@@ -136,6 +219,10 @@ function getScreenSetupCount(product: ConfiguredProduct): number {
   return product.placements
     .filter((p) => p.printType === "screen")
     .reduce((sum, p) => sum + (p.colourCount ?? 1), 0);
+}
+
+function getEmbroiderySetupCount(product: ConfiguredProduct): number {
+  return product.placements.filter((p) => p.printType === "embroidery").length;
 }
 
 export function calculateProduct(
@@ -164,15 +251,20 @@ export function calculateProduct(
       screenPrintTotal += amount;
       placementBreakdown.push({ location: p.location, printType: "Screen Print", amount });
     } else if (p.printType === "embroidery") {
-      const costPerUnit = getEmbroideryPricePerUnit();
+      const costPerUnit = getEmbroideryPricePerUnit(p.colourCount ?? 4, product.productType);
       const amount = costPerUnit * quantity;
       embroideryTotal += amount;
       placementBreakdown.push({ location: p.location, printType: "Embroidery", amount });
     } else if (p.printType === "dtf") {
-      const costPerUnit = getDtfPricePerUnit(quantity);
+      const dtfSize = getDtfReferenceSize(p.location) as DtfSizeKey;
+      const costPerUnit = getDtfPricePerUnit(quantity, dtfSize);
       const amount = costPerUnit * quantity;
       dtfTotal += amount;
-      placementBreakdown.push({ location: p.location, printType: "DTF", amount });
+      placementBreakdown.push({
+        location: p.location,
+        printType: `DTF (${dtfSize})`,
+        amount,
+      });
     } else {
       placementBreakdown.push({ location: p.location, printType: "Unsure (manual review)", amount: 0 });
     }
@@ -190,16 +282,25 @@ export function calculateProduct(
   }
 
   const screenSetupCount = getScreenSetupCount(product);
-  const setupTotal = screenSetupCount * getSetupCostPerScreen();
+  const embroiderySetupCount = getEmbroiderySetupCount(product);
+  const embroiderySetupFee = cfg?.embroiderySetupFee ?? 60;
+  const setupTotal = screenSetupCount * getSetupCostPerScreen() + embroiderySetupCount * embroiderySetupFee;
   const setupBreakdown =
-    screenSetupCount > 0
-      ? `${screenSetupCount} screen(s) × $${getSetupCostPerScreen()}`
+    screenSetupCount > 0 || embroiderySetupCount > 0
+      ? `${screenSetupCount > 0 ? `${screenSetupCount} screen(s) × $${getSetupCostPerScreen()}` : ""}${
+          screenSetupCount > 0 && embroiderySetupCount > 0 ? " + " : ""
+        }${embroiderySetupCount > 0 ? `${embroiderySetupCount} embroidery logo(s) × $${embroiderySetupFee}` : ""}`
       : "—";
 
   const finishBreakdown: { finish: string; amount: number }[] = [];
   let finishTotal = 0;
   for (const f of product.finishes) {
     const costPerUnit = getFinishCostPerUnit(f);
+    const flatCost = getFinishFlatCost(f);
+    if (flatCost > 0) {
+      finishTotal += flatCost;
+      finishBreakdown.push({ finish: f, amount: flatCost });
+    }
     if (costPerUnit > 0) {
       const amount = costPerUnit * quantity;
       finishTotal += amount;
