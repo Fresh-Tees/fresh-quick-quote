@@ -42,6 +42,8 @@ function formatCurrency(n: number): string {
 
 const emptyPlacements: PlacementConfig[] = [];
 
+const DESIGN_LAB_URL = "https://freshtees.com.au/pages/studio-fresh";
+
 type PlacementPrintType = "screen" | "embroidery" | "dtf" | "unsure";
 
 export function ProjectConfigurator({
@@ -131,7 +133,8 @@ export function ProjectConfigurator({
   const models = config.garmentModelsByProduct?.[addingProduct.productType] ?? [];
   const screenMinQty = config.screenPrintMinQty ?? 25;
   const embroideryMinQty = config.embroideryMinQty ?? 25;
-  const minQtyMessage = config.screenPrintMinQtyMessage ?? "Screen printing minimum is 25 units.";
+  const bulkPricingMinQty = screenMinQty;
+  const anyProductUnderBulkMin = products.some((p) => p.quantity < bulkPricingMinQty);
   const embroideryEstimateNote =
     config.embroideryEstimateNote ?? "Estimate based off of 10000 stitches, up to four colours.";
   const projectFinishes = products[0]?.finishes ?? [];
@@ -295,6 +298,7 @@ export function ProjectConfigurator({
 
   const runCalculation = (): ProjectSummary | null => {
     if (products.length === 0) return null;
+    if (products.some((p) => p.quantity < bulkPricingMinQty)) return null;
     const result = calculateProjectSummary(products);
     setSummary(result);
     onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary: result, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
@@ -321,6 +325,12 @@ export function ProjectConfigurator({
       onRequestCallSubmit?.(details);
       setShowContactForm(false);
       setContactForm({ fullName: "", email: "", phone: "", businessName: "" });
+      return;
+    }
+    if (products.some((p) => p.quantity < bulkPricingMinQty)) {
+      setContactFormError(
+        `Indicative bulk pricing starts at ${bulkPricingMinQty} units per product. For smaller runs, check out Design Lab.`
+      );
       return;
     }
     const result = runCalculation();
@@ -393,8 +403,9 @@ export function ProjectConfigurator({
   const showRush = dueDate && businessDaysFromToday(dueDate) < (config.businessDaysForRushThreshold ?? 10);
   const liveEstimatedTotal = useMemo(() => {
     if (products.length === 0) return null;
+    if (products.some((p) => p.quantity < bulkPricingMinQty)) return null;
     return calculateProjectSummary(products).estimatedProjectTotal;
-  }, [products]);
+  }, [products, bulkPricingMinQty]);
 
   const contactForSubmit = contactDetails ?? value.contactDetails ?? null;
 
@@ -407,6 +418,9 @@ export function ProjectConfigurator({
     if (!contactForSubmit) {
       setSubmitQuoteError("Contact details are required. Please enter your details above.");
       setShowContactForm(true);
+      return;
+    }
+    if (products.some((p) => p.quantity < bulkPricingMinQty)) {
       return;
     }
     const computedSummary = calculateProjectSummary(products);
@@ -570,6 +584,20 @@ export function ProjectConfigurator({
             ))}
           </ul>
         )}
+        {products.length > 0 && anyProductUnderBulkMin && (
+          <p className="font-body text-sm text-off-black/85 mb-3">
+            Indicative bulk pricing starts at {bulkPricingMinQty}+ units per product. For smaller runs,{" "}
+            <a
+              href={DESIGN_LAB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+            >
+              check out Design Lab
+            </a>
+            .
+          </p>
+        )}
         {showAddForm ? (
           <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] p-0 sm:p-4 flex items-center justify-center">
           <div className="w-full h-[100dvh] sm:h-auto sm:max-h-[90dvh] max-w-5xl overflow-y-auto p-4 rounded-none sm:rounded-lg bg-white/35 backdrop-blur-md border-0 sm:border border-white/30 shadow-2xl space-y-5">
@@ -649,13 +677,20 @@ export function ProjectConfigurator({
               </div>
             </div>
 
-            {addingProduct.quantity > 0 && addingProduct.quantity < screenMinQty && (
-              <p className="font-body text-xs text-accent">{minQtyMessage}</p>
+            {addingProduct.quantity > 0 && addingProduct.quantity < bulkPricingMinQty && (
+              <p className="font-body text-sm text-off-black/85">
+                Indicative bulk pricing starts at {bulkPricingMinQty}+ units. For smaller runs,{" "}
+                <a
+                  href={DESIGN_LAB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+                >
+                  check out Design Lab
+                </a>
+                .
+              </p>
             )}
-            {addingProduct.quantity > 0 && addingProduct.quantity < embroideryMinQty && (
-              <p className="font-body text-xs text-accent">Embroidery minimum is {embroideryMinQty} units.</p>
-            )}
-
             <p className="font-body text-xs font-medium text-off-black/80 pt-1">Placements</p>
             <div>
               {(config.placementOptions ?? []).map((opt) => (
@@ -896,7 +931,7 @@ export function ProjectConfigurator({
         <div className="mb-4">
           <button
             type="button"
-            disabled={submitQuoteLoading}
+            disabled={submitQuoteLoading || anyProductUnderBulkMin}
             onClick={handleSubmitQuoteAndReveal}
             className="min-h-[44px] w-full px-6 py-3 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-70"
           >
@@ -904,6 +939,20 @@ export function ProjectConfigurator({
           </button>
           {submitQuoteError && (
             <p className="font-body text-sm text-red-600 mt-2">{submitQuoteError}</p>
+          )}
+          {anyProductUnderBulkMin && (
+            <p className="font-body text-sm text-off-black/80 mt-2">
+              Set each product to at least {bulkPricingMinQty} units to see a breakdown. Under {bulkPricingMinQty}?{" "}
+              <a
+                href={DESIGN_LAB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+              >
+                check out Design Lab
+              </a>
+              .
+            </p>
           )}
         </div>
       )}
@@ -962,6 +1011,20 @@ export function ProjectConfigurator({
               />
             </div>
             {contactFormError && <p className="font-body text-sm text-red-600">{contactFormError}</p>}
+            {!openContactFormForRequestCall && anyProductUnderBulkMin && (
+              <p className="font-body text-sm text-off-black/80">
+                Under {bulkPricingMinQty} units per product, use{" "}
+                <a
+                  href={DESIGN_LAB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+                >
+                  Design Lab (Studio Fresh)
+                </a>
+                .
+              </p>
+            )}
             <div className="flex gap-2">
               <button type="submit" className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
                 {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & reveal estimate"}
@@ -978,7 +1041,7 @@ export function ProjectConfigurator({
         <p className="font-body text-sm text-off-black/70 mb-4 italic">{config.bundleMessage}</p>
       )}
 
-      {summary && contactDetails && (
+      {summary && contactDetails && !anyProductUnderBulkMin && (
         <div className="space-y-4 pt-4 mt-4 border-t border-off-black/20 p-5 rounded-lg bg-off-white/40">
           {quoteSubmitted && (
             <>
