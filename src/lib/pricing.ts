@@ -265,6 +265,16 @@ export function calculateProduct(
         printType: `DTF (${dtfSize})`,
         amount,
       });
+    } else if (p.printType === "unsure") {
+      const dtfSize = getDtfReferenceSize(p.location) as DtfSizeKey;
+      const costPerUnit = getDtfPricePerUnit(quantity, dtfSize);
+      const amount = costPerUnit * quantity;
+      dtfTotal += amount;
+      placementBreakdown.push({
+        location: p.location,
+        printType: `Unsure (priced as DTF ${dtfSize})`,
+        amount,
+      });
     } else {
       placementBreakdown.push({ location: p.location, printType: "Unsure (manual review)", amount: 0 });
     }

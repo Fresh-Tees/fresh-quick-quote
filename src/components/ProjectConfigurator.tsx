@@ -734,6 +734,11 @@ export function ProjectConfigurator({
                           Current pricing assumes {getDtfReferenceSize(opt.value)} print size for this placement.
                         </p>
                       )}
+                      {(placementDetails[opt.value] ?? {}).printType === "unsure" && (
+                        <p className="w-full font-body text-[11px] text-off-black/60">
+                          For now, unsure selections are priced using DTF ({getDtfReferenceSize(opt.value)}) for this placement.
+                        </p>
+                      )}
                       <div className="mt-2">
                         <span className="font-body text-xs text-off-black/70">Artwork </span>
                         <button
