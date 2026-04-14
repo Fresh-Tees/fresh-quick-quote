@@ -479,8 +479,8 @@ export function ProjectConfigurator({
   };
 
   return (
-    <div className="relative mb-8 rounded-xl border border-white/20 bg-white/15 backdrop-blur-lg shadow-xl max-h-[min(85vh,56rem)] overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
-      <div className="p-4">
+    <div className="relative mb-6 rounded-xl border border-white/20 bg-white/15 backdrop-blur-lg shadow-xl max-h-none overflow-visible md:mb-8 md:max-h-[min(85vh,56rem)] md:overflow-y-auto md:overscroll-y-contain md:[scrollbar-gutter:stable]">
+      <div className="p-3 sm:p-4">
       {liveEstimatedTotal != null && (
         <div className="sticky top-0 z-30 mb-3 flex justify-end pointer-events-none">
           <div className="rounded-full border border-white/40 bg-white/60 backdrop-blur-md px-4 py-1.5 shadow-sm ring-1 ring-white/70">
@@ -491,12 +491,12 @@ export function ProjectConfigurator({
       )}
       <div className="relative z-10">
       <h2 className="font-display font-bold text-xl text-off-black mb-2">Instant Pricing Calculator</h2>
-      <p className="font-body text-sm text-off-black/75 mb-6 max-w-3xl">
+      <p className="hidden sm:block font-body text-sm text-off-black/75 mb-6 max-w-3xl">
         By default, estimates are based on a single-side, single-colour print. For a more accurate estimate,
         edit the product in the configurator.
       </p>
 
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <p className="font-body text-sm font-medium text-off-black mb-2">Pick your bases</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {config.productTypes.map((t) => (
@@ -523,8 +523,8 @@ export function ProjectConfigurator({
         {products.length > 0 && (
           <ul className="mb-3 space-y-2">
             {products.map((p, i) => (
-              <li key={i} className="flex justify-between items-center font-body text-sm text-off-black/90 bg-white/35 backdrop-blur-sm border border-white/30 px-3 py-2 rounded-lg">
-                <div className="flex flex-wrap items-center gap-2">
+              <li key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 font-body text-sm text-off-black/90 bg-white/35 backdrop-blur-sm border border-white/30 px-3 py-2 rounded-lg">
+                <div className="hidden sm:flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => startEditProduct(i)}
@@ -547,7 +547,14 @@ export function ProjectConfigurator({
                     {p.placements.length} Placement(s)
                   </button>
                 </div>
-                <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => startEditProduct(i)}
+                  className="sm:hidden text-left rounded border border-off-black/20 bg-off-white/30 px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                >
+                  {garmentModelLabel(p.productType, p.garmentModel)} - {p.quantity} units - {p.placements.length} placement(s)
+                </button>
+                <span className="flex items-center gap-1 self-end sm:self-auto">
                   <button
                     type="button"
                     onClick={() => startEditProduct(i)}
@@ -564,8 +571,8 @@ export function ProjectConfigurator({
           </ul>
         )}
         {showAddForm ? (
-          <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] p-4 flex items-center justify-center">
-          <div className="w-full max-w-5xl max-h-[90dvh] overflow-y-auto p-4 rounded-lg bg-white/35 backdrop-blur-md border border-white/30 shadow-2xl space-y-5">
+          <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] p-0 sm:p-4 flex items-center justify-center">
+          <div className="w-full h-[100dvh] sm:h-auto sm:max-h-[90dvh] max-w-5xl overflow-y-auto p-4 rounded-none sm:rounded-lg bg-white/35 backdrop-blur-md border-0 sm:border border-white/30 shadow-2xl space-y-5">
             <div>
               <p className="font-body text-xs font-medium text-off-black/80 mb-2">Product details</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -902,11 +909,11 @@ export function ProjectConfigurator({
       )}
 
       {products.length > 0 && showContactForm && !contactDetails && (
-        <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] p-4 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] p-0 sm:p-4 flex items-center justify-center">
           <form
             ref={contactFormRef}
             onSubmit={handleContactSubmit}
-            className="w-full max-w-xl max-h-[90dvh] overflow-y-auto p-4 rounded-lg border border-white/30 bg-white/85 backdrop-blur-md shadow-2xl space-y-3"
+            className="w-full h-[100dvh] sm:h-auto sm:max-h-[90dvh] max-w-xl overflow-y-auto p-4 rounded-none sm:rounded-lg border-0 sm:border border-white/30 bg-white/90 backdrop-blur-md shadow-2xl space-y-3"
           >
             <p className="font-body text-sm font-medium text-off-black">
               {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required to submit and reveal estimate)"}
