@@ -479,11 +479,11 @@ export function ProjectConfigurator({
   };
 
   return (
-    <div className="relative mb-8 rounded-lg border border-off-black/20 bg-off-white/20 max-h-[min(85vh,56rem)] overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
+    <div className="relative mb-8 rounded-xl border border-white/20 bg-white/15 backdrop-blur-lg shadow-xl max-h-[min(85vh,56rem)] overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
       <div className="p-4">
       {liveEstimatedTotal != null && (
         <div className="sticky top-0 z-30 mb-3 flex justify-end pointer-events-none">
-          <div className="rounded-full border border-burnt-orange/30 bg-white/90 backdrop-blur-sm px-4 py-1.5 shadow-sm ring-1 ring-white/80">
+          <div className="rounded-full border border-white/40 bg-white/60 backdrop-blur-md px-4 py-1.5 shadow-sm ring-1 ring-white/70">
             <p className="font-body text-[10px] uppercase tracking-wide text-off-black/60 text-right">Live estimate</p>
             <p className="font-display font-bold text-burnt-orange text-lg leading-none">{formatCurrency(liveEstimatedTotal)}</p>
           </div>
@@ -523,7 +523,7 @@ export function ProjectConfigurator({
         {products.length > 0 && (
           <ul className="mb-3 space-y-2">
             {products.map((p, i) => (
-              <li key={i} className="flex justify-between items-center font-body text-sm text-off-black/90 bg-white px-3 py-2 rounded">
+              <li key={i} className="flex justify-between items-center font-body text-sm text-off-black/90 bg-white/35 backdrop-blur-sm border border-white/30 px-3 py-2 rounded-lg">
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -560,7 +560,7 @@ export function ProjectConfigurator({
           </ul>
         )}
         {showAddForm ? (
-          <div className="p-4 rounded bg-white border border-off-white space-y-5">
+          <div className="p-4 rounded-lg bg-white/35 backdrop-blur-md border border-white/30 space-y-5">
             <div>
               <p className="font-body text-xs font-medium text-off-black/80 mb-2">Product details</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -579,7 +579,7 @@ export function ProjectConfigurator({
                     setAddingProduct(next);
                     commitEditingProduct(next);
                   }}
-                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/85 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
                   {config.productTypes.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -595,7 +595,7 @@ export function ProjectConfigurator({
                     setAddingProduct(next);
                     commitEditingProduct(next);
                   }}
-                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/85 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
                   {models.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
@@ -614,7 +614,7 @@ export function ProjectConfigurator({
                     setAddingProduct(next);
                     commitEditingProduct(next);
                   }}
-                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/85 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
                   {colourOptions.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -632,7 +632,7 @@ export function ProjectConfigurator({
                     setAddingProduct(next);
                     commitEditingProduct(next);
                   }}
-                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  className="w-full mt-0.5 min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/85 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 />
               </div>
             </div>
@@ -682,7 +682,7 @@ export function ProjectConfigurator({
                               })(),
                             }));
                           }}
-                          className="ml-1 min-h-[44px] px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                          className="ml-1 min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/85 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                         >
                           {(config.placementPrintTypes ?? []).map((t) => (
                             <option
@@ -718,7 +718,7 @@ export function ProjectConfigurator({
                                 })(),
                               }))
                             }
-                            className="ml-1 min-h-[44px] px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                            className="ml-1 min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/85 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                           >
                             {Array.from({ length: Math.min(10, config.screenPrintMaxColours ?? 10) }, (_, i) => i + 1).map((n) => (
                               <option key={n} value={n}>{n}</option>
@@ -896,7 +896,7 @@ export function ProjectConfigurator({
       )}
 
       {products.length > 0 && showContactForm && !contactDetails && (
-        <form ref={contactFormRef} onSubmit={handleContactSubmit} className="mb-4 p-4 rounded-lg border border-off-black/20 bg-white space-y-3">
+        <form ref={contactFormRef} onSubmit={handleContactSubmit} className="mb-4 p-4 rounded-lg border border-white/30 bg-white/35 backdrop-blur-md space-y-3">
           <p className="font-body text-sm font-medium text-off-black">
             {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required to submit and reveal estimate)"}
           </p>
@@ -906,7 +906,7 @@ export function ProjectConfigurator({
               type="text"
               value={contactForm.fullName}
               onChange={(e) => { setContactForm((f) => ({ ...f, fullName: e.target.value })); setContactFieldErrors((err) => ({ ...err, fullName: undefined })); }}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               required
             />
             {contactFieldErrors.fullName && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.fullName}</p>}
@@ -917,7 +917,7 @@ export function ProjectConfigurator({
               type="email"
               value={contactForm.email}
               onChange={(e) => { setContactForm((f) => ({ ...f, email: e.target.value })); setContactFieldErrors((err) => ({ ...err, email: undefined })); }}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               required
             />
             {contactFieldErrors.email && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.email}</p>}
@@ -930,7 +930,7 @@ export function ProjectConfigurator({
               type="tel"
               value={contactForm.phone}
               onChange={(e) => { setContactForm((f) => ({ ...f, phone: e.target.value })); setContactFieldErrors((err) => ({ ...err, phone: undefined })); }}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
             />
             {contactFieldErrors.phone && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.phone}</p>}
           </div>
@@ -940,7 +940,7 @@ export function ProjectConfigurator({
               type="text"
               value={contactForm.businessName}
               onChange={(e) => setContactForm((f) => ({ ...f, businessName: e.target.value }))}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
             />
           </div>
           {contactFormError && <p className="font-body text-sm text-red-600">{contactFormError}</p>}
@@ -983,7 +983,7 @@ export function ProjectConfigurator({
           <p className="font-body text-sm text-off-black/80">Thanks, here's your indicative pricing.</p>
           <p className="font-display font-bold text-off-black">Product Breakdown</p>
           {summary.productCalculations.map((calc, i) => (
-            <div key={i} className="p-3 rounded bg-white border border-off-white">
+            <div key={i} className="p-3 rounded-lg bg-white/40 backdrop-blur-sm border border-white/30">
               <p className="font-display font-bold text-off-black">{garmentModelLabel(products[i].productType, products[i].garmentModel)} × {calc.quantity}</p>
               {products[i].artworkUrl && (
                 <div className="mt-2">
@@ -1011,7 +1011,7 @@ export function ProjectConfigurator({
             </div>
           ))}
 
-          <div className="p-4 rounded bg-off-white/50 border border-off-black/20">
+          <div className="p-4 rounded-lg bg-white/30 backdrop-blur-md border border-white/30">
             <p className="font-display font-bold text-off-black mb-2">Estimated project total</p>
             <p className="font-display font-bold text-2xl text-accent">{formatCurrency(summary.estimatedProjectTotal)}</p>
             <p className="font-body text-xs text-off-black/70 mt-2">Effective cost per unit: varies per product</p>
