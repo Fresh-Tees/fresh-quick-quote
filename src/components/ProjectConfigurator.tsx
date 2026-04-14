@@ -548,7 +548,11 @@ export function ProjectConfigurator({
                   </button>
                 </div>
                 <span className="flex items-center gap-1">
-                  <button type="button" onClick={() => startEditProduct(i)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-off-black/80 hover:text-off-black hover:underline text-xs focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded px-2">
+                  <button
+                    type="button"
+                    onClick={() => startEditProduct(i)}
+                    className="min-h-[40px] inline-flex items-center justify-center px-3 py-1.5 rounded-md border border-off-black/30 bg-white/80 text-off-black text-xs font-medium hover:bg-white focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                  >
                     Edit
                   </button>
                   <button type="button" onClick={() => removeProduct(i)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-accent hover:underline text-xs focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded px-2 -mr-2">
@@ -560,7 +564,8 @@ export function ProjectConfigurator({
           </ul>
         )}
         {showAddForm ? (
-          <div className="p-4 rounded-lg bg-white/35 backdrop-blur-md border border-white/30 space-y-5">
+          <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] p-4 flex items-center justify-center">
+          <div className="w-full max-w-5xl max-h-[90dvh] overflow-y-auto p-4 rounded-lg bg-white/35 backdrop-blur-md border border-white/30 shadow-2xl space-y-5">
             <div>
               <p className="font-body text-xs font-medium text-off-black/80 mb-2">Product details</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -833,6 +838,7 @@ export function ProjectConfigurator({
               </button>
             </div>
           </div>
+          </div>
         ) : null}
       </div>
 
@@ -896,63 +902,69 @@ export function ProjectConfigurator({
       )}
 
       {products.length > 0 && showContactForm && !contactDetails && (
-        <form ref={contactFormRef} onSubmit={handleContactSubmit} className="mb-4 p-4 rounded-lg border border-white/30 bg-white/35 backdrop-blur-md space-y-3">
-          <p className="font-body text-sm font-medium text-off-black">
-            {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required to submit and reveal estimate)"}
-          </p>
-          <div>
-            <label className="block font-body text-xs text-off-black/70 mb-0.5">Full name *</label>
-            <input
-              type="text"
-              value={contactForm.fullName}
-              onChange={(e) => { setContactForm((f) => ({ ...f, fullName: e.target.value })); setContactFieldErrors((err) => ({ ...err, fullName: undefined })); }}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-              required
-            />
-            {contactFieldErrors.fullName && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.fullName}</p>}
-          </div>
-          <div>
-            <label className="block font-body text-xs text-off-black/70 mb-0.5">Email *</label>
-            <input
-              type="email"
-              value={contactForm.email}
-              onChange={(e) => { setContactForm((f) => ({ ...f, email: e.target.value })); setContactFieldErrors((err) => ({ ...err, email: undefined })); }}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-              required
-            />
-            {contactFieldErrors.email && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.email}</p>}
-          </div>
-          <div>
-            <label className="block font-body text-xs text-off-black/70 mb-0.5">
-              Phone number (optional)
-            </label>
-            <input
-              type="tel"
-              value={contactForm.phone}
-              onChange={(e) => { setContactForm((f) => ({ ...f, phone: e.target.value })); setContactFieldErrors((err) => ({ ...err, phone: undefined })); }}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-            />
-            {contactFieldErrors.phone && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.phone}</p>}
-          </div>
-          <div>
-            <label className="block font-body text-xs text-off-black/70 mb-0.5">Business name (optional)</label>
-            <input
-              type="text"
-              value={contactForm.businessName}
-              onChange={(e) => setContactForm((f) => ({ ...f, businessName: e.target.value }))}
-              className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white/90 rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-            />
-          </div>
-          {contactFormError && <p className="font-body text-sm text-red-600">{contactFormError}</p>}
-          <div className="flex gap-2">
-            <button type="submit" className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
-              {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & reveal estimate"}
-            </button>
-            <button type="button" onClick={() => { setShowContactForm(false); setContactFormError(null); setContactFieldErrors({}); }} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded">
-              Cancel
-            </button>
-          </div>
-        </form>
+        <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] p-4 flex items-center justify-center">
+          <form
+            ref={contactFormRef}
+            onSubmit={handleContactSubmit}
+            className="w-full max-w-xl max-h-[90dvh] overflow-y-auto p-4 rounded-lg border border-white/30 bg-white/85 backdrop-blur-md shadow-2xl space-y-3"
+          >
+            <p className="font-body text-sm font-medium text-off-black">
+              {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required to submit and reveal estimate)"}
+            </p>
+            <div>
+              <label className="block font-body text-xs text-off-black/70 mb-0.5">Full name *</label>
+              <input
+                type="text"
+                value={contactForm.fullName}
+                onChange={(e) => { setContactForm((f) => ({ ...f, fullName: e.target.value })); setContactFieldErrors((err) => ({ ...err, fullName: undefined })); }}
+                className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                required
+              />
+              {contactFieldErrors.fullName && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.fullName}</p>}
+            </div>
+            <div>
+              <label className="block font-body text-xs text-off-black/70 mb-0.5">Email *</label>
+              <input
+                type="email"
+                value={contactForm.email}
+                onChange={(e) => { setContactForm((f) => ({ ...f, email: e.target.value })); setContactFieldErrors((err) => ({ ...err, email: undefined })); }}
+                className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                required
+              />
+              {contactFieldErrors.email && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.email}</p>}
+            </div>
+            <div>
+              <label className="block font-body text-xs text-off-black/70 mb-0.5">
+                Phone number (optional)
+              </label>
+              <input
+                type="tel"
+                value={contactForm.phone}
+                onChange={(e) => { setContactForm((f) => ({ ...f, phone: e.target.value })); setContactFieldErrors((err) => ({ ...err, phone: undefined })); }}
+                className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              />
+              {contactFieldErrors.phone && <p className="mt-1 font-body text-xs text-red-600">{contactFieldErrors.phone}</p>}
+            </div>
+            <div>
+              <label className="block font-body text-xs text-off-black/70 mb-0.5">Business name (optional)</label>
+              <input
+                type="text"
+                value={contactForm.businessName}
+                onChange={(e) => setContactForm((f) => ({ ...f, businessName: e.target.value }))}
+                className="w-full min-h-[44px] px-2 py-2 border border-off-black/25 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              />
+            </div>
+            {contactFormError && <p className="font-body text-sm text-red-600">{contactFormError}</p>}
+            <div className="flex gap-2">
+              <button type="submit" className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
+                {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & reveal estimate"}
+              </button>
+              <button type="button" onClick={() => { setShowContactForm(false); setContactFormError(null); setContactFieldErrors({}); }} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {products.length >= 2 && !summary && !contactDetails && (
