@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { getProjectConfiguration, getRestrictedColourOptions, type Answers } from "@/lib/flow";
+import { getProjectConfiguration, getGarmentColourPricingTier, getRestrictedColourOptions, type Answers } from "@/lib/flow";
 import { getGatewaySessionId, track } from "@/lib/ga4";
 import {
   calculateProjectSummary,
@@ -407,6 +407,19 @@ export function ProjectConfigurator({
     return calculateProjectSummary(products).estimatedProjectTotal;
   }, [products, bulkPricingMinQty]);
 
+  const showScreenBaseLayerNotice = useMemo(() => {
+    if (!showAddForm) return false;
+    if (
+      getGarmentColourPricingTier(addingProduct.productType, addingProduct.garmentModel, addingProduct.garmentColour) !==
+      "coloured"
+    ) {
+      return false;
+    }
+    return (["front", "back", "right_sleeve", "left_sleeve"] as const).some(
+      (loc) => placementChecks[loc] && (placementDetails[loc]?.printType ?? "screen") === "screen"
+    );
+  }, [showAddForm, addingProduct.productType, addingProduct.garmentModel, addingProduct.garmentColour, placementChecks, placementDetails]);
+
   const contactForSubmit = contactDetails ?? value.contactDetails ?? null;
 
   const handleSubmitQuoteAndReveal = async () => {
@@ -704,6 +717,12 @@ export function ProjectConfigurator({
                   check out Design Lab
                 </a>
                 .
+              </p>
+            )}
+            {showScreenBaseLayerNotice && (
+              <p className="font-body text-xs text-off-black/75 rounded-md border border-white/40 bg-white/40 px-3 py-2">
+                A base layer is included in this estimate for screen print on non-white garments. Final screen setup is
+                confirmed when we review your artwork and order details.
               </p>
             )}
             <p className="font-body text-xs font-medium text-off-black/80 pt-1">Placements</p>

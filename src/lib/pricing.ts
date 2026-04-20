@@ -45,13 +45,30 @@ export type ProjectSummary = {
   productCalculations: ProductCalculation[];
 };
 
+/** Coloured garment screen print: N-colour + base white layer, per quantity band (c1–c10 = 1–10 ink colours). */
+export type ScreenPrintColouredWithBaseTier = {
+  min: number;
+  max: number | null;
+  c1: number;
+  c2: number;
+  c3: number;
+  c4: number;
+  c5: number;
+  c6: number;
+  c7: number;
+  c8: number;
+  c9: number;
+  c10: number;
+};
+
 function getProjectConfig() {
   const config = getFlowConfig() as Record<string, unknown>;
   return config.projectConfiguration as {
     garmentCostByProduct: Record<string, number>;
     garmentCostByModel?: Record<string, Record<string, number>>;
     screenPrintTiers: { min: number; max: number | null; "1colour": number; "2colour": number; "3colour": number }[];
-    screenPrintTiersColoured?: { min: number; max: number | null; "1colour": number; "2colour": number; "3colour": number }[];
+    screenPrintMaxColours?: number;
+    screenPrintTiersColouredWithBase?: ScreenPrintColouredWithBaseTier[];
     embroideryPricePerUnit?: number;
     embroideryIncludedColours?: number;
     embroideryAdditionalColourPerUnit?: number;
@@ -63,39 +80,62 @@ function getProjectConfig() {
   } | undefined;
 }
 
+function getScreenPrintColouredWithBasePricePerUnit(quantity: number, colourCount: number): number {
+  const cfg = getProjectConfig();
+  const tiers = cfg?.screenPrintTiersColouredWithBase;
+  if (!tiers?.length) return 0;
+  const tier = tiers.find((t) => t.min <= quantity && (t.max === null || t.max >= quantity));
+  if (!tier) return 0;
+  const maxColours = Math.min(10, cfg?.screenPrintMaxColours ?? 10);
+  const idx = Math.min(Math.max(colourCount, 1), maxColours);
+  const key = `c${idx}` as keyof ScreenPrintColouredWithBaseTier;
+  const price = tier[key];
+  return typeof price === "number" ? price : tier.c1;
+}
+
 export function getScreenPrintPricePerUnit(
   quantity: number,
   colourCount: number,
   garmentColourTier: "white" | "coloured"
 ): number {
-  const cfg = getProjectConfig();
-  const tiers =
-    garmentColourTier === "coloured" && cfg?.screenPrintTiersColoured
-      ? cfg.screenPrintTiersColoured
-      : cfg?.screenPrintTiers;
+  if (garmentColourTier === "coloured") {
+    return getScreenPrintColouredWithBasePricePerUnit(quantity, colourCount);
+  }
 
+  const cfg = getProjectConfig();
+  const tiers = cfg?.screenPrintTiers;
   if (!tiers) return 0;
 
-  const tier = tiers.find(
-    (t) => t.min <= quantity && (t.max === null || t.max >= quantity)
-  );
-
+  const tier = tiers.find((t) => t.min <= quantity && (t.max === null || t.max >= quantity));
   if (!tier) return 0;
 
   const baseKey =
-    colourCount <= 1
-      ? "1colour"
-      : colourCount === 2
-      ? "2colour"
-      : "3colour";
-
+    colourCount <= 1 ? "1colour" : colourCount === 2 ? "2colour" : "3colour";
   const basePrice = tier[baseKey as "1colour" | "2colour" | "3colour"] ?? tier["1colour"];
-
   const extraColours = Math.max(0, colourCount - 3);
   const extraChargePerColour = 0.5;
-  const extraCharge = extraColours * extraChargePerColour;
+  return basePrice + extraColours * extraChargePerColour;
+}
 
-  return basePrice + extraCharge;
+/** Label for pricing summary line items (screen print). */
+export function getScreenPrintBreakdownLabel(
+  colourCount: number,
+  garmentColourTier: "white" | "coloured"
+): string {
+  const n = colourCount ?? 1;
+  if (garmentColourTier === "coloured") {
+    return `Screen Print (${n} ${n === 1 ? "colour" : "colours"} + Base)`;
+  }
+  return "Screen Print";
+}
+
+function placementLineGetsBundleDiscount(printType: string): boolean {
+  return (
+    printType.startsWith("Screen Print") ||
+    printType === "Embroidery" ||
+    printType.startsWith("DTF") ||
+    printType.startsWith("Unsure (priced as DTF")
+  );
 }
 
 export function getDtfReferenceSize(location: string): string {
@@ -249,7 +289,11 @@ export function calculateProduct(
       );
       const amount = costPerUnit * quantity;
       screenPrintTotal += amount;
-      placementBreakdown.push({ location: p.location, printType: "Screen Print", amount });
+      placementBreakdown.push({
+        location: p.location,
+        printType: getScreenPrintBreakdownLabel(p.colourCount ?? 1, garmentColourTier),
+        amount,
+      });
     } else if (p.printType === "embroidery") {
       const costPerUnit = getEmbroideryPricePerUnit(p.colourCount ?? 4, product.productType);
       const amount = costPerUnit * quantity;
@@ -287,7 +331,7 @@ export function calculateProduct(
     embroideryTotal = embroideryTotal * discount;
     dtfTotal = dtfTotal * discount;
     for (const pb of placementBreakdown) {
-      if (pb.printType === "Screen Print" || pb.printType === "Embroidery" || pb.printType === "DTF") pb.amount *= discount;
+      if (placementLineGetsBundleDiscount(pb.printType)) pb.amount *= discount;
     }
   }
 
