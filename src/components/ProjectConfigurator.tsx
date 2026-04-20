@@ -474,6 +474,21 @@ export function ProjectConfigurator({
       if (!contactDetails) setContactDetails(contactForSubmit);
       setContactSubmittedAt(new Date().toISOString());
       setQuoteSubmitted(true);
+
+      // Notify parent Shopify page when estimate is successfully submitted.
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            type: "estimate_submitted",
+            source: "fresh-quick-quote",
+            estimateValue: computedSummary.estimatedProjectTotal,
+            currency: "AUD",
+            productType: products[0]?.productType ?? null,
+          },
+          "https://freshtees.com.au"
+        );
+      }
+
       track("quote_submitted", { session_id: sessionId, context: "qualified" });
       onChange({
         purpose,
