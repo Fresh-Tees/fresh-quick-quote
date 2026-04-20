@@ -254,11 +254,18 @@ export function getBundleDiscountPercent(): number {
   return cfg?.bundleDiscountPercent ?? 0;
 }
 
-/** Screen setup count = sum over screen placements of colourCount (or 1) each. */
-function getScreenSetupCount(product: ConfiguredProduct): number {
+/**
+ * Screen setup count: one setup per ink colour per placement.
+ * On coloured garments, add one extra setup per screen placement for the base/underbase screen.
+ */
+function getScreenSetupCount(product: ConfiguredProduct, garmentColourTier: "white" | "coloured"): number {
   return product.placements
     .filter((p) => p.printType === "screen")
-    .reduce((sum, p) => sum + (p.colourCount ?? 1), 0);
+    .reduce((sum, p) => {
+      const colours = p.colourCount ?? 1;
+      const baseScreens = garmentColourTier === "coloured" ? 1 : 0;
+      return sum + colours + baseScreens;
+    }, 0);
 }
 
 function getEmbroiderySetupCount(product: ConfiguredProduct): number {
@@ -335,15 +342,19 @@ export function calculateProduct(
     }
   }
 
-  const screenSetupCount = getScreenSetupCount(product);
+  const screenSetupCount = getScreenSetupCount(product, garmentColourTier);
   const embroiderySetupCount = getEmbroiderySetupCount(product);
   const embroiderySetupFee = cfg?.embroiderySetupFee ?? 60;
   const setupTotal = screenSetupCount * getSetupCostPerScreen() + embroiderySetupCount * embroiderySetupFee;
+  const screenSetupLabel =
+    screenSetupCount > 0
+      ? `${screenSetupCount} screen(s)${garmentColourTier === "coloured" ? " (incl. base)" : ""} × $${getSetupCostPerScreen()}`
+      : "";
   const setupBreakdown =
     screenSetupCount > 0 || embroiderySetupCount > 0
-      ? `${screenSetupCount > 0 ? `${screenSetupCount} screen(s) × $${getSetupCostPerScreen()}` : ""}${
-          screenSetupCount > 0 && embroiderySetupCount > 0 ? " + " : ""
-        }${embroiderySetupCount > 0 ? `${embroiderySetupCount} embroidery logo(s) × $${embroiderySetupFee}` : ""}`
+      ? `${screenSetupLabel}${screenSetupCount > 0 && embroiderySetupCount > 0 ? " + " : ""}${
+          embroiderySetupCount > 0 ? `${embroiderySetupCount} embroidery logo(s) × $${embroiderySetupFee}` : ""
+        }`
       : "—";
 
   const finishBreakdown: { finish: string; amount: number }[] = [];
