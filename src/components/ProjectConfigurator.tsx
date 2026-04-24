@@ -139,17 +139,6 @@ export function ProjectConfigurator({
     config.embroideryEstimateNote ?? "Estimate based off of 10000 stitches, up to four colours.";
   const projectFinishes = products[0]?.finishes ?? [];
 
-  const syncContactAndSummary = (details: ContactDetails, result: ProjectSummary) => {
-    const at = new Date().toISOString();
-    setContactDetails(details);
-    setContactSubmittedAt(at);
-    setSummary(result);
-    setShowContactForm(false);
-    setContactFormError(null);
-    setContactFieldErrors({});
-    onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary: result, contactDetails: details, contactSubmittedAt: at });
-  };
-
   const buildPlacementsFromDraft = (
     draft: ConfiguredProduct,
     checks: Record<string, boolean>,
@@ -296,13 +285,129 @@ export function ProjectConfigurator({
     });
   };
 
-  const runCalculation = (): ProjectSummary | null => {
-    if (products.length === 0) return null;
-    if (products.some((p) => p.quantity < bulkPricingMinQty)) return null;
-    const result = calculateProjectSummary(products);
-    setSummary(result);
-    onChange({ purpose, artworkStatus: value.artworkStatus, products, dueDate, rushFlag, summary: result, contactDetails: contactDetails ?? undefined, contactSubmittedAt: contactSubmittedAt ?? undefined });
-    return result;
+  const submitProjectEstimate = async (details: ContactDetails) => {
+    if (products.length === 0) return;
+    if (products.some((p) => p.quantity < bulkPricingMinQty)) return;
+    setContactFormError(null);
+    setSubmitQuoteLoading(true);
+    const submittedAt = new Date().toISOString();
+    const computedSummary = calculateProjectSummary(products);
+    try {
+      const payload = {
+        name: details.fullName,
+        email: details.email,
+        phone: details.phone ?? "",
+        message: "",
+        marketingConsent: false,
+        context: "qualified" as const,
+        answers: answers ?? {},
+        project_purpose: purpose,
+        artwork_status: value.artworkStatus,
+        contact_details: details,
+        project_products: products.map((p, i) => ({
+          product_type: p.productType,
+          garment_model: p.garmentModel,
+          garment_colour: p.garmentColour,
+          quantity: p.quantity,
+          placements: p.placements.map((pl) => ({
+            location: pl.location,
+            print_type: pl.printType,
+            ...(pl.colourCount != null && { colour_count: pl.colourCount }),
+            ...(pl.artworkUrl && { artwork_url: pl.artworkUrl }),
+          })),
+          finishes: p.finishes,
+          due_date: dueDate || undefined,
+          rush_flag: rushFlag,
+          indicative_total: computedSummary.productCalculations[i]?.productTotal,
+        })),
+        indicative_pricing_shown: {
+          estimatedProjectTotal: computedSummary.estimatedProjectTotal,
+          totalUnits: computedSummary.totalUnits,
+          productCalculations: computedSummary.productCalculations,
+        },
+        timestamp: new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
+      };
+      const res = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Something went wrong");
+      }
+      setSummary(computedSummary);
+      setContactDetails(details);
+      setContactSubmittedAt(submittedAt);
+      setQuoteSubmitted(true);
+      setShowContactForm(false);
+      setContactFormError(null);
+      setContactFieldErrors({});
+
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            type: "estimate_submitted",
+            source: "fresh-quick-quote",
+            estimateValue: computedSummary.estimatedProjectTotal,
+            currency: "AUD",
+            productType: products[0]?.productType ?? null,
+          },
+          "https://freshtees.com.au"
+        );
+      }
+
+      track("quote_submitted", { session_id: sessionId, context: "qualified" });
+      onChange({
+        purpose,
+        artworkStatus: value.artworkStatus,
+        products,
+        dueDate,
+        rushFlag,
+        summary: computedSummary,
+        contactDetails: details,
+        contactSubmittedAt: submittedAt,
+      });
+    } catch (err) {
+      setContactFormError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitQuoteLoading(false);
+    }
+  };
+
+  const handleGetMyEstimateClick = () => {
+    setSubmitQuoteError(null);
+    if (!dueDate?.trim()) {
+      setSubmitQuoteError("Please set a due date.");
+      return;
+    }
+    if (contactDetails) {
+      setContactForm({
+        fullName: contactDetails.fullName,
+        email: contactDetails.email,
+        phone: contactDetails.phone ?? "",
+        businessName: contactDetails.businessName ?? "",
+      });
+    } else {
+      setContactForm({ fullName: "", email: "", phone: "", businessName: "" });
+    }
+    setShowContactForm(true);
+  };
+
+  const handleTweakResubmit = () => {
+    setSummary(null);
+    setQuoteSubmitted(false);
+    onChange({
+      purpose,
+      artworkStatus: value.artworkStatus,
+      products,
+      dueDate,
+      rushFlag,
+      summary: null,
+      contactDetails: contactDetails ?? undefined,
+      contactSubmittedAt: contactSubmittedAt ?? undefined,
+    });
   };
 
   const handleContactSubmit = (e: React.FormEvent) => {
@@ -333,59 +438,11 @@ export function ProjectConfigurator({
       );
       return;
     }
-    const result = runCalculation();
-    if (result) {
-      syncContactAndSummary(details, result);
-
-      track("indicative_pricing_revealed", {
-        session_id: sessionId,
-        total_units: result.totalUnits,
-        estimated_total: result.estimatedProjectTotal,
-        product_count: result.productCalculations.length,
-      });
-
-      const payload = {
-        name: details.fullName,
-        email: details.email,
-        phone: details.phone ?? "",
-        message: "",
-        marketingConsent: false,
-        context: "indicative_pricing",
-        answers: answers ?? {},
-        project_purpose: purpose,
-        artwork_status: value.artworkStatus,
-        contact_details: details,
-        project_products: products.map((p, i) => ({
-          product_type: p.productType,
-          garment_model: p.garmentModel,
-          garment_colour: p.garmentColour,
-          quantity: p.quantity,
-          placements: p.placements.map((pl) => ({
-            location: pl.location,
-            print_type: pl.printType,
-            ...(pl.colourCount != null && { colour_count: pl.colourCount }),
-            ...(pl.artworkUrl && { artwork_url: pl.artworkUrl }),
-          })),
-          finishes: p.finishes,
-          due_date: dueDate || undefined,
-          rush_flag: rushFlag,
-          indicative_total: result.productCalculations[i]?.productTotal,
-        })),
-        indicative_pricing_shown: {
-          estimatedProjectTotal: result.estimatedProjectTotal,
-          totalUnits: result.totalUnits,
-          productCalculations: result.productCalculations,
-        },
-        timestamp: new Date().toISOString(),
-        submittedAt: new Date().toISOString(),
-      };
-
-      fetch("/api/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }).catch(() => {});
+    if (!dueDate?.trim()) {
+      setContactFormError("Please set a due date.");
+      return;
     }
+    void submitProjectEstimate(details);
   };
 
   const businessDaysFromToday = (dateStr: string): number => {
@@ -419,106 +476,6 @@ export function ProjectConfigurator({
       (loc) => placementChecks[loc] && (placementDetails[loc]?.printType ?? "screen") === "screen"
     );
   }, [showAddForm, addingProduct.productType, addingProduct.garmentModel, addingProduct.garmentColour, placementChecks, placementDetails]);
-
-  const contactForSubmit = contactDetails ?? value.contactDetails ?? null;
-
-  const handleSubmitQuoteAndReveal = async () => {
-    setSubmitQuoteError(null);
-    if (!dueDate?.trim()) {
-      setSubmitQuoteError("Please set a due date.");
-      return;
-    }
-    if (!contactForSubmit) {
-      setSubmitQuoteError("Contact details are required. Please enter your details above.");
-      setShowContactForm(true);
-      return;
-    }
-    if (products.some((p) => p.quantity < bulkPricingMinQty)) {
-      return;
-    }
-    const computedSummary = calculateProjectSummary(products);
-    setSubmitQuoteLoading(true);
-    try {
-      const payload = {
-        name: contactForSubmit.fullName,
-        email: contactForSubmit.email,
-        phone: contactForSubmit.phone ?? "",
-        message: "",
-        marketingConsent: false,
-        context: "qualified",
-        answers: answers ?? {},
-        project_purpose: purpose,
-        artwork_status: value.artworkStatus,
-        contact_details: contactForSubmit,
-        project_products: products.map((p, i) => ({
-          product_type: p.productType,
-          garment_model: p.garmentModel,
-          garment_colour: p.garmentColour,
-          quantity: p.quantity,
-          placements: p.placements.map((pl) => ({
-            location: pl.location,
-            print_type: pl.printType,
-            ...(pl.colourCount != null && { colour_count: pl.colourCount }),
-            ...(pl.artworkUrl && { artwork_url: pl.artworkUrl }),
-          })),
-          finishes: p.finishes,
-          due_date: dueDate || undefined,
-          rush_flag: rushFlag,
-          indicative_total: computedSummary.productCalculations[i]?.productTotal,
-        })),
-        indicative_pricing_shown: {
-          estimatedProjectTotal: computedSummary.estimatedProjectTotal,
-          totalUnits: computedSummary.totalUnits,
-          productCalculations: computedSummary.productCalculations,
-        },
-        timestamp: new Date().toISOString(),
-        submittedAt: new Date().toISOString(),
-      };
-      const res = await fetch("/api/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Something went wrong");
-      }
-      setSummary(computedSummary);
-      if (!contactDetails) setContactDetails(contactForSubmit);
-      setContactSubmittedAt(new Date().toISOString());
-      setQuoteSubmitted(true);
-
-      // Notify parent Shopify page when estimate is successfully submitted.
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "estimate_submitted",
-            source: "fresh-quick-quote",
-            estimateValue: computedSummary.estimatedProjectTotal,
-            currency: "AUD",
-            productType: products[0]?.productType ?? null,
-          },
-          "https://freshtees.com.au"
-        );
-      }
-
-      track("quote_submitted", { session_id: sessionId, context: "qualified" });
-      onChange({
-        purpose,
-        artworkStatus: value.artworkStatus,
-        products,
-        dueDate,
-        rushFlag,
-        summary: computedSummary,
-        contactDetails: contactForSubmit,
-        contactSubmittedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      setSubmitQuoteError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setSubmitQuoteLoading(false);
-    }
-  };
 
   return (
     <div className="relative mb-6 rounded-xl border border-white/20 bg-white/15 backdrop-blur-lg shadow-xl max-h-none overflow-visible md:mb-8 md:max-h-[min(85vh,56rem)] md:overflow-y-auto md:overscroll-y-contain md:[scrollbar-gutter:stable]">
@@ -966,10 +923,10 @@ export function ProjectConfigurator({
           <button
             type="button"
             disabled={submitQuoteLoading || anyProductUnderBulkMin}
-            onClick={handleSubmitQuoteAndReveal}
+            onClick={handleGetMyEstimateClick}
             className="min-h-[44px] w-full px-6 py-3 bg-accent text-white font-body font-medium rounded-lg hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-70"
           >
-            {submitQuoteLoading ? "Submitting…" : "Calculate Breakdown"}
+            {submitQuoteLoading ? "Submitting…" : "Get My Estimate"}
           </button>
           {submitQuoteError && (
             <p className="font-body text-sm text-red-600 mt-2">{submitQuoteError}</p>
@@ -991,7 +948,7 @@ export function ProjectConfigurator({
         </div>
       )}
 
-      {products.length > 0 && showContactForm && !contactDetails && (
+      {products.length > 0 && showContactForm && (
         <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] p-0 sm:p-4 flex items-center justify-center">
           <form
             ref={contactFormRef}
@@ -999,7 +956,9 @@ export function ProjectConfigurator({
             className="w-full h-[100dvh] sm:h-auto sm:max-h-[90dvh] max-w-xl overflow-y-auto p-4 rounded-none sm:rounded-lg border-0 sm:border border-white/30 bg-white/90 backdrop-blur-md shadow-2xl space-y-3"
           >
             <p className="font-body text-sm font-medium text-off-black">
-              {openContactFormForRequestCall && onRequestCallSubmit ? "Contact details (required for us to call you)" : "Contact details (required to submit and reveal estimate)"}
+              {openContactFormForRequestCall && onRequestCallSubmit
+                ? "Contact details (required for us to call you)"
+                : "Contact details (required to get your estimate)"}
             </p>
             <div>
               <label className="block font-body text-xs text-off-black/70 mb-0.5">Full name *</label>
@@ -1060,10 +1019,22 @@ export function ProjectConfigurator({
               </p>
             )}
             <div className="flex gap-2">
-              <button type="submit" className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
-                {openContactFormForRequestCall && onRequestCallSubmit ? "Submit – we'll call you" : "Submit & reveal estimate"}
+              <button
+                type="submit"
+                disabled={submitQuoteLoading}
+                className="min-h-[44px] px-4 py-2 bg-accent text-white font-body text-sm rounded focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-70"
+              >
+                {openContactFormForRequestCall && onRequestCallSubmit
+                  ? "Submit – we'll call you"
+                  : submitQuoteLoading
+                    ? "Submitting…"
+                    : "Submit & reveal estimate"}
               </button>
-              <button type="button" onClick={() => { setShowContactForm(false); setContactFormError(null); setContactFieldErrors({}); }} className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded">
+              <button
+                type="button"
+                onClick={() => { setShowContactForm(false); setContactFormError(null); setContactFieldErrors({}); }}
+                className="min-h-[44px] px-4 py-2 font-body text-sm text-off-black/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded"
+              >
                 Cancel
               </button>
             </div>
@@ -1093,6 +1064,13 @@ export function ProjectConfigurator({
                   Download
                 </a>
               </p>
+              <button
+                type="button"
+                onClick={handleTweakResubmit}
+                className="min-h-[44px] w-full sm:w-auto mt-3 px-4 py-2 rounded-lg border border-off-black/25 bg-white/80 font-body text-sm font-medium text-off-black hover:bg-off-white/80 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              >
+                Tweak & resubmit
+              </button>
             </>
           )}
           <p className="font-body text-xs font-medium text-off-black/70 uppercase tracking-wide">Pricing summary</p>
