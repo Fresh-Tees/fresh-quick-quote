@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { getProjectConfiguration, getGarmentColourPricingTier, getRestrictedColourOptions, type Answers } from "@/lib/flow";
+import {
+  getProjectConfiguration,
+  getGarmentColourPricingTier,
+  getRestrictedColourOptions,
+  getCustomerSuppliedGarmentModel,
+  getCustomerSuppliedLabel,
+  getCustomerSuppliedAvailabilityNote,
+  canSelectCustomerSuppliedGarment,
+  isCustomerSuppliedGarmentModel,
+  sanitizeGarmentModelForQuantity,
+  type Answers,
+} from "@/lib/flow";
 import { getGatewaySessionId, track } from "@/lib/ga4";
 import {
   calculateProjectSummary,
@@ -119,8 +130,10 @@ export function ProjectConfigurator({
   const colourOptions = getRestrictedColourOptions();
 
   const productTypeLabel = (v: string) => config.productTypes.find((t) => t.value === v)?.label ?? v;
-  const garmentModelLabel = (productType: string, modelValue: string) =>
-    config.garmentModelsByProduct?.[productType]?.find((m) => m.value === modelValue)?.label ?? modelValue;
+  const garmentModelLabel = (productType: string, modelValue: string) => {
+    if (isCustomerSuppliedGarmentModel(modelValue)) return getCustomerSuppliedLabel();
+    return config.garmentModelsByProduct?.[productType]?.find((m) => m.value === modelValue)?.label ?? modelValue;
+  };
   const placementLabel = (v: string) => config.placementOptions?.find((p) => p.value === v)?.label ?? v;
   const placementLabelForProduct = (productType: string, v: string) => {
     if (productType === "hats") {
@@ -130,7 +143,13 @@ export function ProjectConfigurator({
     return placementLabel(v);
   };
   const finishLabel = (v: string) => config.finishOptions.find((f) => f.value === v)?.label ?? v;
-  const models = config.garmentModelsByProduct?.[addingProduct.productType] ?? [];
+  const baseModels = config.garmentModelsByProduct?.[addingProduct.productType] ?? [];
+  const models = canSelectCustomerSuppliedGarment(addingProduct.quantity)
+    ? [
+        ...baseModels,
+        { value: getCustomerSuppliedGarmentModel(), label: getCustomerSuppliedLabel() },
+      ]
+    : baseModels;
   const screenMinQty = config.screenPrintMinQty ?? 25;
   const embroideryMinQty = config.embroideryMinQty ?? 25;
   const bulkPricingMinQty = screenMinQty;
@@ -171,7 +190,11 @@ export function ProjectConfigurator({
     setArtworkUploadError(null);
     const next: ConfiguredProduct = {
       ...draft,
-      garmentModel: (config.garmentModelsByProduct?.[draft.productType] ?? []).length ? draft.garmentModel : draft.productType,
+      garmentModel: sanitizeGarmentModelForQuantity(
+        draft.productType,
+        (config.garmentModelsByProduct?.[draft.productType] ?? []).length ? draft.garmentModel : draft.productType,
+        draft.quantity
+      ),
       placements,
     };
     const nextProducts = products.map((p, i) => (i === editingProductIndex ? next : p));
@@ -626,6 +649,9 @@ export function ProjectConfigurator({
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
+                <p className="mt-1.5 font-body text-xs text-off-black/65">
+                  {getCustomerSuppliedAvailabilityNote()}
+                </p>
               </div>
             </div>
             </div>
@@ -653,7 +679,13 @@ export function ProjectConfigurator({
                   min={1}
                   value={addingProduct.quantity}
                   onChange={(e) => {
-                    const next = { ...addingProduct, quantity: parseInt(e.target.value, 10) || 0 };
+                    const quantity = parseInt(e.target.value, 10) || 0;
+                    const garmentModel = sanitizeGarmentModelForQuantity(
+                      addingProduct.productType,
+                      addingProduct.garmentModel,
+                      quantity
+                    );
+                    const next = { ...addingProduct, quantity, garmentModel };
                     setAddingProduct(next);
                     commitEditingProduct(next);
                   }}

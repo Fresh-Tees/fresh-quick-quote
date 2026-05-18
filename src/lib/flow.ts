@@ -169,6 +169,11 @@ export type ProjectConfiguration = {
   embroideryCapSurchargePerUnit?: number;
   embroiderySetupFee?: number;
   garmentCostByProduct: Record<string, number>;
+  customerSuppliedGarmentModel?: string;
+  customerSuppliedLabel?: string;
+  customerSuppliedMinQty?: number;
+  customerSuppliedCostPerUnit?: number;
+  customerSuppliedAvailabilityNote?: string;
   setupCostPerScreen: number;
   finishOptions: { value: string; label: string; costPerUnit: number; flatCost?: number; flagForReview?: boolean; treatAsScreenPlacement?: boolean }[];
   rushOptions?: { label: string; surchargePercent: number }[];
@@ -182,6 +187,57 @@ export type ProjectConfiguration = {
 export function getProjectConfiguration(): ProjectConfiguration | null {
   const data = (flowConfig as Record<string, unknown>).projectConfiguration as ProjectConfiguration | undefined;
   return data ?? null;
+}
+
+export const DEFAULT_CUSTOMER_SUPPLIED_GARMENT_MODEL = "customer_supplied";
+
+export function getCustomerSuppliedGarmentModel(): string {
+  return getProjectConfiguration()?.customerSuppliedGarmentModel ?? DEFAULT_CUSTOMER_SUPPLIED_GARMENT_MODEL;
+}
+
+export function getCustomerSuppliedLabel(): string {
+  return getProjectConfiguration()?.customerSuppliedLabel ?? "Customer Supplied";
+}
+
+export function getCustomerSuppliedMinQty(): number {
+  return getProjectConfiguration()?.customerSuppliedMinQty ?? 50;
+}
+
+export function getCustomerSuppliedCostPerUnit(): number {
+  return getProjectConfiguration()?.customerSuppliedCostPerUnit ?? 1;
+}
+
+export function getCustomerSuppliedAvailabilityNote(): string {
+  const configured = getProjectConfiguration()?.customerSuppliedAvailabilityNote;
+  if (configured) return configured;
+  const min = getCustomerSuppliedMinQty();
+  return `Customer supplied is only available on orders over ${min} units.`;
+}
+
+export function isCustomerSuppliedGarmentModel(garmentModel?: string): boolean {
+  return garmentModel === getCustomerSuppliedGarmentModel();
+}
+
+export function canSelectCustomerSuppliedGarment(quantity: number): boolean {
+  return quantity >= getCustomerSuppliedMinQty();
+}
+
+/** When customer supplied is invalid for qty, pick the first standard garment model. */
+export function defaultGarmentModelForProduct(productType: string): string {
+  const models = getProjectConfiguration()?.garmentModelsByProduct?.[productType] ?? [];
+  const standard = models.find((m) => !isCustomerSuppliedGarmentModel(m.value));
+  return standard?.value ?? models[0]?.value ?? productType;
+}
+
+export function sanitizeGarmentModelForQuantity(
+  productType: string,
+  garmentModel: string,
+  quantity: number
+): string {
+  if (isCustomerSuppliedGarmentModel(garmentModel) && !canSelectCustomerSuppliedGarment(quantity)) {
+    return defaultGarmentModelForProduct(productType);
+  }
+  return garmentModel;
 }
 
 /** Resolves "white" or "coloured" for pricing from product type, model, and selected colour value. */

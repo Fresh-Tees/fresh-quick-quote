@@ -1,4 +1,9 @@
-import { getFlowConfig, getGarmentColourPricingTier } from "./flow";
+import {
+  getFlowConfig,
+  getGarmentColourPricingTier,
+  getCustomerSuppliedCostPerUnit,
+  isCustomerSuppliedGarmentModel,
+} from "./flow";
 
 export type PlacementConfig = {
   location: string;
@@ -224,6 +229,9 @@ export function getEmbroideryPricePerUnit(
 }
 
 export function getGarmentCostPerUnit(productType: string, garmentModel?: string): number {
+  if (isCustomerSuppliedGarmentModel(garmentModel)) {
+    return getCustomerSuppliedCostPerUnit();
+  }
   const cfg = getProjectConfig();
   if (garmentModel && cfg?.garmentCostByModel?.[productType]?.[garmentModel] !== undefined) {
     const modelCost = cfg.garmentCostByModel[productType][garmentModel];

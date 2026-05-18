@@ -418,6 +418,11 @@
     "embroiderySetupFee": 60,
     "embroideryEstimateNote": "Estimate based based off of 10000 stitch design",
     "setupCostPerScreen": 60,
+    "customerSuppliedGarmentModel": "customer_supplied",
+    "customerSuppliedLabel": "Customer Supplied",
+    "customerSuppliedMinQty": 50,
+    "customerSuppliedCostPerUnit": 1,
+    "customerSuppliedAvailabilityNote": "Customer supplied is only available on orders over 50 units.",
     "finishOptions": [
       { "value": "fold_bag", "label": "Fold & Bag", "costPerUnit": 1.50, "flagForReview": false },
       { "value": "neck_print_label_print", "label": "Neck Print Label Print", "costPerUnit": 1.50, "flagForReview": false },
