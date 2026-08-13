@@ -113,12 +113,13 @@
     "smallOrderMessage": "Orders under 50 units per product must be placed via our website."
   },
   "productionTimeline": {
-    "standard": "7–10 business days (begins after payment + spec sheet approval)",
+    "standard": "10–14 business days (begins after payment + spec sheet approval)",
     "rushOptions": [
-      { "label": "3–5 business days", "surcharge": "+20%" },
-      { "label": "1–2 business days", "surcharge": "+40%" }
+      { "label": "10 business days", "surcharge": "+10%" },
+      { "label": "7 business days", "surcharge": "+20%" },
+      { "label": "5 business days (if possible)", "surcharge": "+30%" }
     ],
-    "rushNote": "Rush subject to production capacity."
+    "rushNote": "Rush subject to approval."
   },
   "quoteProcessSteps": [
     "We review and confirm your request",
@@ -432,10 +433,11 @@
       { "value": "swing_tag_attachment", "label": "Swing Tag Attchment", "costPerUnit": 0.50, "flagForReview": false }
     ],
     "rushOptions": [
-      { "label": "3–5 business days", "surchargePercent": 20 },
-      { "label": "1–2 business days", "surchargePercent": 40 }
+      { "label": "10 business days", "surchargePercent": 10 },
+      { "label": "7 business days", "surchargePercent": 20 },
+      { "label": "5 business days (if possible)", "surchargePercent": 30 }
     ],
-    "businessDaysForRushThreshold": 10,
+    "businessDaysForRushThreshold": 14,
     "bundleDiscountPercent": 0.07,
     "bundleMessage": "Multi-product projects benefit from bundled production efficiencies.",
     "volumeIncentiveHigh": "You are in a high-efficiency production tier.",
